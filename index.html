@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KC 인증 현황 대시보드</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+  :root {
+    --bg:#0e0e12; --surface:#16161e; --surface2:#1e1e2a; --border:#2a2a38;
+    --complete:#22c55e; --complete-bg:#052e16;
+    --progress:#f59e0b; --progress-bg:#1c1007;
+    --incomplete:#ef4444; --incomplete-bg:#1f0808;
+    --text:#e8e8f0; --text-muted:#6b6b80;
+    --accent:#818cf8; --keychron:#60a5fa; --moza:#fb923c;
+    --requested:#a78bfa; --arrived:#34d399;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);
+    min-height:100vh;padding:28px 20px 60px;max-width:920px;margin:0 auto}
+
+  /* Header */
+  .header{display:flex;align-items:flex-end;justify-content:space-between;
+    margin-bottom:28px;flex-wrap:wrap;gap:12px}
+  .title-block h1{font-size:22px;font-weight:900;letter-spacing:-0.5px}
+  .title-block p{font-size:11px;color:var(--text-muted);margin-top:4px;font-family:'Space Mono',monospace}
+  .last-updated{font-family:'Space Mono',monospace;font-size:11px;color:var(--text-muted);
+    background:var(--surface2);border:1px solid var(--border);padding:5px 12px;border-radius:6px}
+
+  /* KPI */
+  .kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+  .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:16px 20px;position:relative;overflow:hidden}
+  .kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:12px 12px 0 0}
+  .kpi-card.complete::before{background:var(--complete)}
+  .kpi-card.inprogress::before{background:var(--progress)}
+  .kpi-card.incomplete::before{background:var(--incomplete)}
+  .kpi-label{font-size:11px;color:var(--text-muted);font-weight:500;letter-spacing:.4px;margin-bottom:8px}
+  .kpi-number{font-family:'Space Mono',monospace;font-size:38px;font-weight:700;line-height:1}
+  .kpi-card.complete .kpi-number{color:var(--complete)}
+  .kpi-card.inprogress .kpi-number{color:var(--progress)}
+  .kpi-card.incomplete .kpi-number{color:var(--incomplete)}
+  .kpi-sub{font-size:11px;color:var(--text-muted);margin-top:7px;line-height:1.5}
+
+  /* Progress */
+  .progress-section{background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:16px 20px;margin-bottom:24px}
+  .progress-label{font-size:11px;color:var(--text-muted);margin-bottom:10px;font-weight:500;letter-spacing:.4px}
+  .progress-bar{height:10px;background:var(--surface2);border-radius:999px;overflow:hidden;display:flex}
+  .pf{transition:width 1s cubic-bezier(.4,0,.2,1)}
+  .pf.c{background:var(--complete)}.pf.p{background:var(--progress)}.pf.i{background:var(--incomplete)}
+  .progress-legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-muted)}
+  .legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+  /* Tabs */
+  .tabs{display:flex;gap:5px;margin-bottom:14px;background:var(--surface);
+    border:1px solid var(--border);border-radius:10px;padding:5px}
+  .tab-btn{flex:1;padding:9px 12px;border:none;border-radius:7px;background:transparent;
+    color:var(--text-muted);font-family:'Noto Sans KR',sans-serif;font-size:12px;font-weight:600;
+    cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:7px}
+  .tab-btn:hover{background:var(--surface2)}
+  .tab-btn.active{background:var(--surface2);color:var(--text)}
+  .tab-btn.active.t-complete{color:var(--complete)}
+  .tab-btn.active.t-inprogress{color:var(--progress)}
+  .tab-btn.active.t-incomplete{color:var(--incomplete)}
+  .tab-count{font-family:'Space Mono',monospace;font-size:10px;padding:2px 6px;
+    border-radius:4px;background:var(--bg);min-width:22px;text-align:center}
+
+  /* Filter */
+  .filter-row{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+  .filter-label{font-size:11px;color:var(--text-muted)}
+  .filter-btn{padding:5px 14px;border-radius:6px;border:1px solid var(--border);
+    background:var(--surface);color:var(--text-muted);font-family:'Noto Sans KR',sans-serif;
+    font-size:11px;font-weight:500;cursor:pointer;transition:all .15s}
+  .filter-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(129,140,248,.08)}
+  .filter-btn.keychron.active{border-color:var(--keychron);color:var(--keychron);background:rgba(96,165,250,.08)}
+  .filter-btn.moza.active{border-color:var(--moza);color:var(--moza);background:rgba(251,146,60,.08)}
+
+  /* Cards */
+  .model-list{display:flex;flex-direction:column;gap:8px}
+  .model-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+    padding:13px 16px;display:flex;align-items:flex-start;gap:12px;transition:border-color .15s}
+  .model-card:hover{border-color:#3a3a50}
+  .status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+  .dot-complete{background:var(--complete);box-shadow:0 0 6px var(--complete)}
+  .dot-inprogress{background:var(--progress);box-shadow:0 0 6px var(--progress);animation:blink 2s infinite}
+  .dot-incomplete{background:#44445a}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .model-info{flex:1;min-width:0}
+  .model-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .model-meta{font-size:11px;color:var(--text-muted);margin-top:3px;
+    display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+  .model-memo{font-size:10px;color:var(--text-muted);font-style:italic;margin-top:3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:380px}
+  .brand-tag{display:inline-flex;align-items:center;padding:1px 7px;border-radius:4px;
+    font-size:10px;font-weight:700;letter-spacing:.3px;flex-shrink:0}
+  .brand-keychron{background:rgba(96,165,250,.12);color:var(--keychron)}
+  .brand-moza{background:rgba(251,146,60,.12);color:var(--moza)}
+  .cert-num{font-family:'Space Mono',monospace;font-size:10px;color:var(--complete);
+    background:var(--complete-bg);padding:2px 8px;border-radius:4px;white-space:nowrap}
+  .date-chip{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);
+    background:var(--surface2);padding:2px 8px;border-radius:4px;white-space:nowrap}
+
+  /* 샘플 요청 영역 */
+  .sample-area{display:flex;flex-direction:column;align-items:flex-end;gap:7px;flex-shrink:0}
+  .sample-header{display:flex;align-items:center;gap:8px}
+  .sample-label{font-size:10px;color:var(--text-muted);white-space:nowrap}
+  .toggle-wrap{display:flex;border:1px solid var(--border);border-radius:6px;overflow:hidden}
+  .toggle-btn{padding:5px 14px;border:none;background:transparent;font-family:'Noto Sans KR',sans-serif;
+    font-size:11px;font-weight:600;cursor:pointer;color:var(--text-muted);transition:all .15s}
+  .toggle-btn:hover:not(.active){background:var(--surface2)}
+  .toggle-btn.req.active{background:rgba(167,139,250,.18);color:var(--requested)}
+  .toggle-btn.arr.active{background:rgba(52,211,153,.15);color:var(--arrived)}
+
+  /* 요청일 입력 */
+  .date-input-wrap{display:flex;align-items:center;gap:6px;background:var(--surface2);
+    border:1px solid rgba(167,139,250,.4);border-radius:6px;padding:3px 10px}
+  .date-input-label{font-size:10px;color:var(--requested);white-space:nowrap}
+  .date-input{background:transparent;border:none;outline:none;color:var(--text);
+    font-family:'Space Mono',monospace;font-size:11px;font-weight:700;width:110px;cursor:pointer}
+  .date-input::-webkit-calendar-picker-indicator{filter:invert(60%) sepia(40%) saturate(400%) hue-rotate(220deg);cursor:pointer}
+
+  /* 도착 badge */
+  .arrived-badge{display:inline-flex;align-items:center;gap:5px;font-size:10px;
+    color:var(--arrived);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);
+    padding:3px 10px;border-radius:6px;white-space:nowrap}
+  .req-date-chip{font-family:'Space Mono',monospace;font-size:10px;color:var(--requested);
+    background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.25);
+    padding:2px 8px;border-radius:4px;white-space:nowrap}
+
+  .empty-state{text-align:center;padding:40px;color:var(--text-muted);font-size:13px}
+
+  /* Toast */
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;
+    padding:10px 20px;border-radius:8px;opacity:0;transition:all .3s;
+    pointer-events:none;white-space:nowrap;font-family:'Noto Sans KR',sans-serif;z-index:999}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title-block">
+    <h1>🔏 KC 인증 현황 대시보드</h1>
+    <p>키크론 KC 인증 관련 + MOZA · KC 인증 상황 체크</p>
+  </div>
+  <div class="last-updated" id="today-date"></div>
+</div>
+
+<div class="kpi-grid">
+  <div class="kpi-card complete">
+    <div class="kpi-label">✅ 완료</div>
+    <div class="kpi-number" id="cnt-c">0</div>
+    <div class="kpi-sub" id="sub-c"></div>
+  </div>
+  <div class="kpi-card inprogress">
+    <div class="kpi-label">🔄 진행 중</div>
+    <div class="kpi-number" id="cnt-p">0</div>
+    <div class="kpi-sub">샘플 전달 · 심사 진행 중</div>
+  </div>
+  <div class="kpi-card incomplete">
+    <div class="kpi-label">⏸ 미완료</div>
+    <div class="kpi-number" id="cnt-i">0</div>
+    <div class="kpi-sub" id="sub-i"></div>
+  </div>
+</div>
+
+<div class="progress-section">
+  <div class="progress-label">전체 진행률</div>
+  <div class="progress-bar" id="prog-bar"></div>
+  <div class="progress-legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--complete)"></div>완료</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--progress)"></div>진행 중</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--incomplete)"></div>미완료</div>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn t-complete active" onclick="setTab('complete')">
+    완료 <span class="tab-count" id="tc-c">0</span>
+  </button>
+  <button class="tab-btn t-inprogress" onclick="setTab('inprogress')">
+    진행 중 <span class="tab-count" id="tc-p">0</span>
+  </button>
+  <button class="tab-btn t-incomplete" onclick="setTab('incomplete')">
+    미완료 <span class="tab-count" id="tc-i">0</span>
+  </button>
+</div>
+
+<div class="filter-row">
+  <span class="filter-label">브랜드</span>
+  <button class="filter-btn active"   id="f-all"      onclick="setFilter('all')">전체</button>
+  <button class="filter-btn keychron" id="f-keychron" onclick="setFilter('keychron')">Keychron</button>
+  <button class="filter-btn moza"     id="f-moza"     onclick="setFilter('moza')">MOZA Racing</button>
+</div>
+
+<div id="content"></div>
+<div id="toast"></div>
+
+<script>
+const DATA=[
+  {brand:'Keychron',model:'B2 PRO',certDate:'2025-10-22',sampleDate:'2025-11-17',status:'complete',certNum:'R-R-TB8-B2',memo:''},
+  {brand:'Keychron',model:'C2 PRO',certDate:'2025-10-22',sampleDate:'2025-11-17',status:'complete',certNum:'R-R-TB8-C2P',memo:''},
+  {brand:'Keychron',model:'K0 MAX',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:'인증업체 자료 전달 완료 / 20251208'},
+  {brand:'Keychron',model:'K10 MAX',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'K15 MAX',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'K5 MAX',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'K8 MAX',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'Q0 MAX',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'Q10 MAX SE',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'Q13 MAX SE',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'Q3 MAX',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'Q6 MAX SE',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'Q60 MAX SE',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'V10 MAX',certDate:'2025-10-22',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'BM22 Mouse',certDate:'',sampleDate:'2025-12-19',status:'complete',certNum:'',memo:''},
+  {brand:'Keychron',model:'V1 Ultra',certDate:'2026-01-12',sampleDate:'',status:'complete',certNum:'R-R-TB8-VU',memo:''},
+  {brand:'Keychron',model:'U-receiver-A',certDate:'2026-01-12',sampleDate:'',status:'complete',certNum:'R-R-TB8-U-receiver-A',memo:''},
+  {brand:'MOZA Racing',model:'MOZA R3 Bundle',certDate:'2025-10-31',sampleDate:'2025-11-03',status:'complete',certNum:'R-R-TB8-MOZA-DDR3',memo:'포트 확인 필요'},
+  {brand:'MOZA Racing',model:'MOZA R5 Bundle',certDate:'2025-10-31',sampleDate:'2025-11-03',status:'complete',certNum:'R-R-TB8-MOZA-DDR5',memo:''},
+  {brand:'MOZA Racing',model:'MOZA R21 Wheelbase',certDate:'2025-11-13',sampleDate:'2025-11-14',status:'complete',certNum:'R-R-TB8-MOZA-DDR21',memo:'블루투스 신호 간섭 이슈'},
+  {brand:'MOZA Racing',model:'MOZA R25 Wheelbase',certDate:'2025-11-13',sampleDate:'2025-11-14',status:'complete',certNum:'R-R-TB8-MOZA-DDR25',memo:'블루투스 신호 간섭 이슈'},
+  {brand:'MOZA Racing',model:'KS Pro Steering Wheel',certDate:'2026-03-19',sampleDate:'2026-03-20',status:'complete',certNum:'R-R-TB8-MOZA-Wheel',memo:'견적서 아직 도착전, 확인 후 송금 예정'},
+  {brand:'MOZA Racing',model:'SRP2 Racing Pedals',certDate:'2026-03-19',sampleDate:'2026-03-20',status:'complete',certNum:'R-R-TB8-MOZA-SRP',memo:'견적서 아직 도착전, 확인 후 송금 예정'},
+  // 진행 중
+  {brand:'Keychron',model:'M5 Mouse 8K',certDate:'',sampleDate:'2025-12-19',status:'inprogress',certNum:'',memo:'* RF 테스트 샘플 마우스'},
+  // 미완료
+  {brand:'Keychron',model:'K10 PRO SE ZMK',certDate:'2025-10-22',sampleDate:'',status:'incomplete',certNum:'',memo:'* RF 테스트 샘플 키보드'},
+  {brand:'Keychron',model:'K15 PRO SE ZMK',certDate:'2025-10-22',sampleDate:'',status:'incomplete',certNum:'',memo:''},
+  {brand:'Keychron',model:'K3 SE V2 ZMK',certDate:'2025-10-22',sampleDate:'',status:'incomplete',certNum:'',memo:''},
+  {brand:'Keychron',model:'K8 PRO SE ZMK',certDate:'2025-10-22',sampleDate:'',status:'incomplete',certNum:'',memo:''},
+  {brand:'Keychron',model:'M6 Mouse Silent',certDate:'2025-10-22',sampleDate:'',status:'incomplete',certNum:'',memo:''},
+];
+
+const SKEY='kc_sample_v1';
+function loadState(){try{return JSON.parse(localStorage.getItem(SKEY)||'{}')}catch(e){return{}}}
+function saveState(s){try{localStorage.setItem(SKEY,JSON.stringify(s))}catch(e){}}
+let SS=loadState();
+function gs(m){return SS[m]||{status:'none',reqDate:''}}
+
+function setModelStatus(model,status){
+  if(!SS[model]) SS[model]={status:'none',reqDate:''};
+  SS[model].status=status;
+  if(status==='none') SS[model].reqDate='';
+  saveState(SS);
+  render();
+  const msgs={requested:'📤 샘플 요청으로 표시했습니다',arrived:'📦 도착 완료로 표시했습니다',none:'초기화했습니다'};
+  showToast(msgs[status]||'');
+  updateKPI();
+}
+function setReqDate(model,date){
+  if(!SS[model]) SS[model]={status:'requested',reqDate:''};
+  SS[model].reqDate=date;
+  saveState(SS);
+  render();
+}
+
+let curTab='complete', curFilter='all';
+
+function init(){
+  const d=new Date();
+  document.getElementById('today-date').textContent=
+    `기준: ${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const c=DATA.filter(x=>x.status==='complete').length;
+  const p=DATA.filter(x=>x.status==='inprogress').length;
+  const i=DATA.filter(x=>x.status==='incomplete').length;
+  const tot=DATA.length;
+  document.getElementById('cnt-c').textContent=c;
+  document.getElementById('cnt-p').textContent=p;
+  document.getElementById('cnt-i').textContent=i;
+  document.getElementById('tc-c').textContent=c;
+  document.getElementById('tc-p').textContent=p;
+  document.getElementById('tc-i').textContent=i;
+  const kc=DATA.filter(x=>x.brand==='Keychron'&&x.status==='complete').length;
+  const mz=DATA.filter(x=>x.brand==='MOZA Racing'&&x.status==='complete').length;
+  document.getElementById('sub-c').textContent=`Keychron ${kc}건 · MOZA ${mz}건`;
+  const bar=document.getElementById('prog-bar');
+  bar.innerHTML=`<div class="pf c" style="width:${c/tot*100}%"></div><div class="pf p" style="width:${p/tot*100}%"></div><div class="pf i" style="width:${i/tot*100}%"></div>`;
+  updateKPI();
+  render();
+}
+
+function updateKPI(){
+  const req=DATA.filter(d=>d.status==='incomplete'&&gs(d.model).status!=='none').length;
+  document.getElementById('sub-i').textContent=req>0?`샘플 요청: ${req}건`:'샘플 미발송';
+}
+
+function setTab(t){
+  curTab=t;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  const map={complete:'t-complete',inprogress:'t-inprogress',incomplete:'t-incomplete'};
+  document.querySelector('.tab-btn.'+map[t]).classList.add('active');
+  render();
+}
+function setFilter(f){
+  curFilter=f;
+  ['all','keychron','moza'].forEach(x=>document.getElementById('f-'+x).classList.toggle('active',x===f));
+  render();
+}
+
+function render(){
+  const list=DATA.filter(d=>{
+    const t=d.status===curTab;
+    const b=curFilter==='all'||(curFilter==='keychron'&&d.brand==='Keychron')||(curFilter==='moza'&&d.brand==='MOZA Racing');
+    return t&&b;
+  });
+  if(!list.length){document.getElementById('content').innerHTML='<div class="empty-state">해당 조건에 맞는 모델이 없습니다.</div>';return;}
+
+  const rows=list.map(d=>{
+    const dotC={complete:'dot-complete',inprogress:'dot-inprogress',incomplete:'dot-incomplete'}[d.status];
+    const bC=d.brand==='Keychron'?'brand-keychron':'brand-moza';
+    const bL=d.brand==='Keychron'?'Keychron':'MOZA';
+    let right='';
+
+    if(d.status==='complete'){
+      right=d.certNum
+        ?`<span class="cert-num">${d.certNum}</span>`
+        :(d.sampleDate?`<span class="date-chip">시료 ${d.sampleDate}</span>`:'');
+    } else if(d.status==='inprogress'){
+      right=`<span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--progress);background:var(--progress-bg);padding:3px 9px;border-radius:5px;white-space:nowrap">심사 진행 중</span>`;
+    } else if(d.status==='incomplete'){
+      const ms=gs(d.model);
+      const mid=d.model.replace(/\s+/g,'_');
+      // 토글
+      const tgl=`<div class="toggle-wrap">
+        <button class="toggle-btn req ${ms.status==='requested'?'active':''}"
+          onclick="setModelStatus('${d.model}',${ms.status==='requested'?`'none'`:`'requested'`})">요청</button>
+        <button class="toggle-btn arr ${ms.status==='arrived'?'active':''}"
+          onclick="setModelStatus('${d.model}',${ms.status==='arrived'?`'none'`:`'arrived'`})">도착</button>
+      </div>`;
+      // 요청일 입력 (요청 상태일 때만)
+      const dateIn=ms.status==='requested'
+        ?`<div class="date-input-wrap">
+            <span class="date-input-label">요청일</span>
+            <input class="date-input" type="date" value="${ms.reqDate}" id="di_${mid}"
+              onchange="setReqDate('${d.model}',this.value)">
+           </div>`:'';
+      // 도착 배지
+      const arrBadge=ms.status==='arrived'
+        ?`<div class="arrived-badge">📦 도착 완료${ms.reqDate?' · 요청일 '+ms.reqDate:''}</div>`:'';
+
+      right=`<div class="sample-area">
+        <div class="sample-header"><span class="sample-label">샘플 요청</span>${tgl}</div>
+        ${dateIn}${arrBadge}
+      </div>`;
+    }
+
+    const meta=[];
+    if(d.certDate) meta.push(`신청: ${d.certDate}`);
+    if(d.sampleDate) meta.push(`시료: ${d.sampleDate}`);
+
+    return `<div class="model-card">
+      <div class="status-dot ${dotC}"></div>
+      <div class="model-info">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <span class="model-name">${d.model}</span>
+          <span class="brand-tag ${bC}">${bL}</span>
+        </div>
+        ${meta.length?`<div class="model-meta">${meta.join('<span style="color:#3a3a50"> · </span>')}</div>`:''}
+        ${d.memo?`<div class="model-memo">${d.memo}</div>`:''}
+      </div>
+      ${right}
+    </div>`;
+  }).join('');
+
+  document.getElementById('content').innerHTML=`<div class="model-list">${rows}</div>`;
+}
+
+let _tt;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(_tt); _tt=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+init();
+</script>
+</body>
+</html>
