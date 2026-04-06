@@ -590,6 +590,77 @@ function clearSearch() {
   onSearch('');
 }
 
+
+// ══════════════════════════════════════════
+//  카드 HTML 생성 (render / 검색 공용)
+// ══════════════════════════════════════════
+function buildCard(d) {
+  const dot = {complete:'dot-complete',inprogress:'dot-inprogress',incomplete:'dot-incomplete'}[d.status];
+  const bC  = d.brand==='Keychron' ? 'brand-keychron' : 'brand-moza';
+  const bL  = d.brand==='Keychron' ? 'Keychron' : 'MOZA';
+  const esc = d.model.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  const mid = d.model.replace(/['\s\\]/g,'_');
+  const memo      = gm(d.model) !== null ? gm(d.model) : d.sheetMemo;
+  const isEditing = editMemo === d.model;
+  let memoHtml = '';
+  if (isEditing) {
+    memoHtml = `<div class="memo-editor">
+      <input class="memo-input" id="mi_${mid}" value="${(memo||'').replace(/"/g,'&quot;')}"
+        placeholder="메모 입력..." onkeydown="if(event.key==='Enter')saveMemo('${esc}')">
+      <button class="memo-save" onclick="saveMemo('${esc}')">저장</button>
+      <button class="memo-cancel" onclick="cancelMemo()">취소</button>
+    </div>`;
+  } else {
+    memoHtml = `<div class="memo-row">
+      <span class="memo-text">${memo || '<span style="opacity:.35">메모 없음</span>'}</span>
+      <button class="memo-edit-btn" onclick="startMemo('${esc}')" title="메모 편집">✏️</button>
+    </div>`;
+  }
+  let right = '';
+  if (d.status === 'complete') {
+    right = d.certNum
+      ? `<span class="cert-num">${d.certNum}</span>`
+      : (d.sampDate ? `<span class="date-chip">시료 ${d.sampDate}</span>` : '');
+  } else if (d.status === 'inprogress') {
+    right = `<span class="progress-chip">심사 진행 중</span>`;
+  } else {
+    const ms  = gs(d.model);
+    const tgl = `<div class="toggle-wrap">
+      <button class="toggle-btn req ${ms.status==='requested'?'active':''}"
+        onclick="setSample('${esc}','${ms.status==='requested'?'none':'requested'}')">요청</button>
+      <button class="toggle-btn arr ${ms.status==='arrived'?'active':''}"
+        onclick="setSample('${esc}','${ms.status==='arrived'?'none':'arrived'}')">도착</button>
+    </div>`;
+    const dateIn = ms.status === 'requested'
+      ? `<div class="date-input-wrap">
+          <span class="date-input-label">요청일</span>
+          <input class="date-input" type="date" value="${ms.reqDate}"
+            id="di_${mid}" onchange="setDate('${esc}',this.value)">
+         </div>` : '';
+    const arrBadge = ms.status === 'arrived'
+      ? `<div class="arrived-badge">📦 도착 완료${ms.reqDate?' · 요청일 '+ms.reqDate:''}</div>` : '';
+    right = `<div class="sample-area">
+      <div class="sample-header"><span class="sample-label">샘플 요청</span>${tgl}</div>
+      ${dateIn}${arrBadge}
+    </div>`;
+  }
+  const meta = [];
+  if (d.certDate) meta.push('신청: '+d.certDate);
+  if (d.sampDate) meta.push('시료: '+d.sampDate);
+  return `<div class="model-card">
+    <div class="status-dot ${dot}"></div>
+    <div class="model-info">
+      <div class="name-row">
+        <span class="model-name">${hl(d.model)}</span>
+        <span class="brand-tag ${bC}">${bL}</span>
+      </div>
+      ${meta.length ? `<div class="model-meta">${meta.join('<span style="color:#3a3a50"> · </span>')}</div>` : ''}
+      ${memoHtml}
+    </div>
+    ${right}
+  </div>`;
+}
+
 // ══════════════════════════════════════════
 //  카드 렌더링
 // ══════════════════════════════════════════
@@ -600,8 +671,9 @@ function render() {
     return;
   }
 
+  // 검색어가 있으면 탭 무시하고 전체 검색
   const list = DATA.filter(d => {
-    if (d.status !== curTab) return false;
+    if (!searchQ && d.status !== curTab) return false;   // ← 검색 없을 때만 탭 필터
     if (curFilter === 'keychron' && d.brand !== 'Keychron') return false;
     if (curFilter === 'moza'     && d.brand !== 'MOZA Racing') return false;
     if (searchQ && !d.model.toLowerCase().includes(searchQ)) return false;
@@ -615,87 +687,44 @@ function render() {
     return;
   }
 
-  const html = list.map(d => {
-    const dot = { complete:'dot-complete', inprogress:'dot-inprogress', incomplete:'dot-incomplete' }[d.status];
-    const bC  = d.brand === 'Keychron' ? 'brand-keychron' : 'brand-moza';
-    const bL  = d.brand === 'Keychron' ? 'Keychron' : 'MOZA';
-    const esc = d.model.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const mid = d.model.replace(/['\s\\]/g,'_');
-
-    // 메모 (로컬 > 시트 순)
-    const memo      = gm(d.model) !== null ? gm(d.model) : d.sheetMemo;
-    const isEditing = editMemo === d.model;
-
-    let memoHtml = '';
-    if (isEditing) {
-      memoHtml = `<div class="memo-editor">
-        <input class="memo-input" id="mi_${mid}"
-          value="${(memo||'').replace(/"/g,'&quot;')}"
-          placeholder="메모 입력..."
-          onkeydown="if(event.key==='Enter')saveMemo('${esc}')">
-        <button class="memo-save" onclick="saveMemo('${esc}')">저장</button>
-        <button class="memo-cancel" onclick="cancelMemo()">취소</button>
-      </div>`;
-    } else {
-      memoHtml = `<div class="memo-row">
-        <span class="memo-text">${memo || '<span style="opacity:.35">메모 없음</span>'}</span>
-        <button class="memo-edit-btn" onclick="startMemo('${esc}')" title="메모 편집">✏️</button>
-      </div>`;
-    }
-
-    // 우측 배지
-    let right = '';
-    if (d.status === 'complete') {
-      right = d.certNum
-        ? `<span class="cert-num">${d.certNum}</span>`
-        : (d.sampDate ? `<span class="date-chip">시료 ${d.sampDate}</span>` : '');
-    } else if (d.status === 'inprogress') {
-      right = `<span class="progress-chip">심사 진행 중</span>`;
-    } else {
-      const ms  = gs(d.model);
-      const tgl = `<div class="toggle-wrap">
-        <button class="toggle-btn req ${ms.status==='requested'?'active':''}"
-          onclick="setSample('${esc}','${ms.status==='requested'?'none':'requested'}')">요청</button>
-        <button class="toggle-btn arr ${ms.status==='arrived'?'active':''}"
-          onclick="setSample('${esc}','${ms.status==='arrived'?'none':'arrived'}')">도착</button>
-      </div>`;
-      const dateIn = ms.status === 'requested'
-        ? `<div class="date-input-wrap">
-            <span class="date-input-label">요청일</span>
-            <input class="date-input" type="date" value="${ms.reqDate}"
-              id="di_${mid}" onchange="setDate('${esc}',this.value)">
-           </div>` : '';
-      const arrBadge = ms.status === 'arrived'
-        ? `<div class="arrived-badge">📦 도착 완료${ms.reqDate?' · 요청일 '+ms.reqDate:''}</div>` : '';
-      right = `<div class="sample-area">
-        <div class="sample-header"><span class="sample-label">샘플 요청</span>${tgl}</div>
-        ${dateIn}${arrBadge}
-      </div>`;
-    }
-
-    const meta = [];
-    if (d.certDate) meta.push(`신청: ${d.certDate}`);
-    if (d.sampDate) meta.push(`시료: ${d.sampDate}`);
-
-    return `<div class="model-card">
-      <div class="status-dot ${dot}"></div>
-      <div class="model-info">
-        <div class="name-row">
-          <span class="model-name">${hl(d.model)}</span>
-          <span class="brand-tag ${bC}">${bL}</span>
+  // 검색 결과일 때 → 상태별 그룹으로 나눠서 표시
+  if (searchQ) {
+    const statusOrder  = ['complete', 'inprogress', 'incomplete'];
+    const statusLabel  = { complete:'✅ 완료', inprogress:'🔄 진행 중', incomplete:'⏸ 미완료' };
+    const statusColor  = { complete:'var(--complete)', inprogress:'var(--progress)', incomplete:'var(--incomplete)' };
+    let grouped = '';
+    let totalFound = 0;
+    statusOrder.forEach(st => {
+      const group = list.filter(d => d.status === st);
+      if (!group.length) return;
+      totalFound += group.length;
+      grouped += `<div style="margin-bottom:18px">
+        <div style="font-size:11px;font-weight:700;color:${statusColor[st]};
+          letter-spacing:.4px;margin-bottom:8px;padding:0 2px">
+          ${statusLabel[st]} <span style="color:var(--text-muted);font-family:'Space Mono',monospace">(${group.length})</span>
         </div>
-        ${meta.length ? `<div class="model-meta">${meta.join('<span style="color:#3a3a50"> · </span>')}</div>` : ''}
-        ${memoHtml}
-      </div>
-      ${right}
+        <div class="model-list">${group.map(d => buildCard(d)).join('')}</div>
+      </div>`;
+    });
+    const summary = `<div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;padding:0 2px">
+      🔍 "<b style="color:var(--text)">${searchQ}</b>" 검색 결과 — 전체 ${totalFound}건
     </div>`;
-  }).join('');
+    document.getElementById('content').innerHTML = summary + grouped;
 
+    if (editMemo) {
+      const el = document.getElementById(`mi_${editMemo.replace(/['\s\\]/g,'_')}`);
+      if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    }
+    return;
+  }
+
+  const html = list.map(d => buildCard(d)).join('');
   document.getElementById('content').innerHTML = `<div class="model-list">${html}</div>`;
 
   // 메모 편집 포커스
   if (editMemo) {
     const el = document.getElementById(`mi_${editMemo.replace(/['\s\\]/g,'_')}`);
+
     if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
   }
 }
