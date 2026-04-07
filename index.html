@@ -303,20 +303,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 <!-- KPI -->
 <div class="kpi-grid">
-  <div class="kpi-card complete">
-    <div class="kpi-label">✅ 완료</div>
-    <div class="kpi-number" id="cnt-c">—</div>
-    <div class="kpi-sub" id="sub-c"></div>
+  <div class="kpi-card incomplete">
+    <div class="kpi-label">⏸ 미완료</div>
+    <div class="kpi-number" id="cnt-i">—</div>
+    <div class="kpi-sub" id="sub-i">샘플 미발송</div>
   </div>
   <div class="kpi-card inprogress">
     <div class="kpi-label">🔄 진행 중</div>
     <div class="kpi-number" id="cnt-p">—</div>
     <div class="kpi-sub">샘플 전달 · 심사 진행 중</div>
   </div>
-  <div class="kpi-card incomplete">
-    <div class="kpi-label">⏸ 미완료</div>
-    <div class="kpi-number" id="cnt-i">—</div>
-    <div class="kpi-sub" id="sub-i">샘플 미발송</div>
+  <div class="kpi-card complete">
+    <div class="kpi-label">✅ 완료</div>
+    <div class="kpi-number" id="cnt-c">—</div>
+    <div class="kpi-sub" id="sub-c"></div>
   </div>
 </div>
 
@@ -337,14 +337,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 <!-- Tabs -->
 <div class="tabs">
-  <button class="tab-btn t-complete active" onclick="setTab('complete')">
-    완료 <span class="tab-count" id="tc-c">0</span>
+  <button class="tab-btn t-incomplete active" onclick="setTab('incomplete')">
+    미완료 <span class="tab-count" id="tc-i">0</span>
   </button>
   <button class="tab-btn t-inprogress" onclick="setTab('inprogress')">
     진행 중 <span class="tab-count" id="tc-p">0</span>
   </button>
-  <button class="tab-btn t-incomplete" onclick="setTab('incomplete')">
-    미완료 <span class="tab-count" id="tc-i">0</span>
+  <button class="tab-btn t-complete" onclick="setTab('complete')">
+    완료 <span class="tab-count" id="tc-c">0</span>
   </button>
 </div>
 
@@ -466,7 +466,7 @@ function gm(m)  { return MEMOS[m] ?? null; }
 //  UI 상태
 // ══════════════════════════════════════════
 let DATA      = [];
-let curTab    = 'complete';
+let curTab    = 'incomplete';
 let curFilter = 'all';
 let searchQ   = '';
 let editMemo  = null; // 현재 편집 중인 모델명
