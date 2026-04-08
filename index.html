@@ -235,10 +235,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;flex-shrink:0}
 .sku-home-empty{text-align:center;padding:14px;color:var(--text-muted);
   font-size:12px;line-height:1.8}
-.sku-home-resolve{padding:3px 8px;border-radius:4px;border:1px solid rgba(34,197,94,.3);
-  background:none;color:var(--complete);font-family:'Noto Sans KR',sans-serif;
-  font-size:10px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
-.sku-home-resolve:hover{background:rgba(34,197,94,.1)}
+.sku-status-badge{font-size:10px;font-weight:600;padding:2px 7px;
+  border-radius:4px;white-space:nowrap;flex-shrink:0}
+.sku-status-badge.open{color:var(--progress);background:var(--progress-bg)}
+.sku-status-badge.done{color:var(--complete);background:var(--complete-bg)}
 
 /* ── SKU 버튼 강조 ── */
 .sku-btn{border-color:var(--accent);color:var(--accent);background:rgba(129,140,248,.06)}
@@ -280,6 +280,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   border-radius:8px;padding:12px 13px;margin-bottom:8px;transition:border-color .15s}
 .sku-card:hover{border-color:#3a3a50}
 .sku-card.resolved{opacity:.7}
+.sku-card.editing{border-color:var(--accent);background:rgba(129,140,248,.05)}
 .sku-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
 .sku-card-date{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);
   background:var(--surface);padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0}
@@ -297,6 +298,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .sku-action-btn.resolve:hover{background:rgba(34,197,94,.1)}
 .sku-action-btn.del{border-color:rgba(239,68,68,.3);color:var(--incomplete)}
 .sku-action-btn.del:hover{background:rgba(239,68,68,.08)}
+.sku-action-btn.edit{border-color:rgba(129,140,248,.3);color:var(--accent)}
+.sku-action-btn.edit:hover{background:rgba(129,140,248,.08)}
 .sku-action-btn.reopen{border-color:rgba(245,158,11,.3);color:var(--progress)}
 .sku-action-btn.reopen:hover{background:rgba(245,158,11,.08)}
 .sku-empty{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;line-height:1.8}
@@ -475,6 +478,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <!-- 추가 폼 -->
     <div id="sku-form-wrap">
       <div class="sku-form">
+        <div class="sku-form-section-title" style="font-size:11px;font-weight:700;
+          color:var(--text-muted);letter-spacing:.4px;margin-bottom:12px">새 SKU 등록</div>
         <div class="sku-form-row">
           <label class="sku-label">등록 날짜 <span class="sku-required">*</span></label>
           <input class="sku-input" type="date" id="sku-date">
@@ -924,8 +929,7 @@ function renderSKUHome() {
   const listEl   = document.getElementById('sku-home-list');
   if (!badge || !listEl) return;
 
-  // 배지: 진행 중 건수
-  badge.textContent = openList.length > 0 ? `진행 중 ${openList.length}건` : '없음';
+  badge.textContent         = openList.length > 0 ? `진행 중 ${openList.length}건` : '없음';
   badge.style.background    = openList.length > 0 ? 'var(--incomplete-bg)' : 'var(--complete-bg)';
   badge.style.color         = openList.length > 0 ? 'var(--incomplete)' : 'var(--complete)';
 
@@ -934,22 +938,23 @@ function renderSKUHome() {
     return;
   }
 
-  // 진행 중 먼저, 해결됨은 최대 2개만 표시
+  // 진행 중 우선, 해결됨 최대 2개
   const pending  = SKUS.filter(s => !s.resolved);
   const resolved = SKUS.filter(s => s.resolved).slice(0, 2);
-  const show     = [...pending, ...resolved].slice(0, 6); // 최대 6개
+  const show     = [...pending, ...resolved].slice(0, 6);
 
   const html = show.map(s => {
-    const resolveBtn = !s.resolved
-      ? `<button class="sku-home-resolve" onclick="event.stopPropagation();resolveSKUHome(${s.id})">✅ 해결</button>`
-      : `<span style="font-size:10px;color:var(--complete);font-weight:600;flex-shrink:0">완료</span>`;
+    // 상태 뱃지 (해결 버튼 없이 상태만 표시)
+    const statusBadge = s.resolved
+      ? `<span class="sku-status-badge done">✅ 완료</span>`
+      : `<span class="sku-status-badge open">⏳ 진행 중</span>`;
 
-    return `<div class="sku-home-item" onclick="openSKU()">
+    return `<div class="sku-home-item" onclick="openSKUEdit(${s.id})">
       <div class="sku-home-dot ${s.resolved?'done':''}"></div>
       <span class="sku-home-content">${s.content}</span>
       ${s.note ? `<span class="sku-home-note">${s.note}</span>` : ''}
       <span class="sku-home-date">${s.date}</span>
-      ${resolveBtn}
+      ${statusBadge}
     </div>`;
   }).join('');
 
@@ -961,21 +966,23 @@ function renderSKUHome() {
   listEl.innerHTML = html + more;
 }
 
-function resolveSKUHome(id) {
-  const sku = SKUS.find(s => s.id === id);
-  if (!sku) return;
-  sku.resolved   = true;
-  sku.resolvedAt = new Date().toISOString();
-  LS.set('kc_skus_v1', SKUS);
-  renderSKUHome();
-  toast('✅ 해결 완료로 처리했습니다');
-}
-
 // ══════════════════════════════════════════
 //  신규 SKU 관리
 // ══════════════════════════════════════════
-let SKUS     = LS.get('kc_skus_v1', []);  // { id, date, content, note, resolved, resolvedAt }
-let skuTab   = 'open'; // 'open' | 'closed'
+let SKUS      = LS.get('kc_skus_v1', []);  // { id, date, content, note, resolved, resolvedAt }
+let skuTab    = 'open'; // 'open' | 'closed'
+let editingSKU = null;  // 현재 편집 중인 SKU id
+
+// 홈 위젯 클릭 → 해당 항목 편집 모드로 패널 열기
+function openSKUEdit(id) {
+  openSKU();
+  // 약간 딜레이 후 해당 항목 스크롤 + 편집 모드
+  setTimeout(() => {
+    const tab = SKUS.find(s => s.id === id)?.resolved ? 'closed' : 'open';
+    setSKUTab(tab);
+    setTimeout(() => startEditSKU(id), 50);
+  }, 80);
+}
 
 function openSKU() {
   // 오늘 날짜 기본값 세팅
@@ -986,6 +993,9 @@ function openSKU() {
   document.getElementById('sku-date').value    = `${yyyy}-${mm}-${dd}`;
   document.getElementById('sku-content').value = '';
   document.getElementById('sku-note').value    = '';
+  // editingSKU 초기화
+  editingSKU = null;
+  updateFormTitle();
   renderSKUHome();
   renderSKUList();
   document.getElementById('sku-overlay').classList.add('show');
@@ -1016,6 +1026,8 @@ function addSKU() {
   LS.set('kc_skus_v1', SKUS);
   renderSKUHome();
 
+  editingSKU = null;
+  updateFormTitle();
   document.getElementById('sku-content').value = '';
   document.getElementById('sku-note').value    = '';
   renderSKUList();
@@ -1060,7 +1072,6 @@ function renderSKUList() {
   const openCnt   = SKUS.filter(s => !s.resolved).length;
   const closedCnt = SKUS.filter(s => s.resolved).length;
 
-  // 탭 카운트 표시
   document.getElementById('sku-tab-open').textContent   = `⏳ 진행 중 (${openCnt})`;
   document.getElementById('sku-tab-closed').textContent = `✅ 해결됨 (${closedCnt})`;
 
@@ -1073,26 +1084,53 @@ function renderSKUList() {
   }
 
   const html = list.map(s => {
+    const isEditing = editingSKU === s.id;
     const resolvedDate = s.resolvedAt
       ? new Date(s.resolvedAt).toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\. /g,'-').replace('.','')
       : '';
 
+    // ── 편집 모드 ──
+    if (isEditing) {
+      return `<div class="sku-card editing" id="sku-card-${s.id}">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:10px">✏️ SKU 수정</div>
+        <div class="sku-form-row">
+          <label class="sku-label">등록 날짜</label>
+          <input class="sku-input" type="date" id="edit-date-${s.id}" value="${s.date}">
+        </div>
+        <div class="sku-form-row">
+          <label class="sku-label">내용</label>
+          <textarea class="sku-textarea" id="edit-content-${s.id}">${s.content}</textarea>
+        </div>
+        <div class="sku-form-row">
+          <label class="sku-label">비고</label>
+          <input class="sku-input" type="text" id="edit-note-${s.id}" value="${s.note||''}">
+        </div>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <button class="sku-submit-btn" style="flex:1" onclick="saveEditSKU(${s.id})">💾 저장</button>
+          <button class="sku-action-btn" style="padding:9px 14px" onclick="cancelEditSKU()">취소</button>
+        </div>
+      </div>`;
+    }
+
+    // ── 일반 모드 ──
     const footContent = s.resolved
       ? `<div style="display:flex;align-items:center;gap:8px">
           <span class="sku-resolved-badge">✅ 해결 완료</span>
           <span class="sku-resolved-date">${resolvedDate}</span>
          </div>
          <div class="sku-actions">
+           <button class="sku-action-btn edit"   onclick="startEditSKU(${s.id})">✏️ 수정</button>
            <button class="sku-action-btn reopen" onclick="reopenSKU(${s.id})">↩ 재오픈</button>
            <button class="sku-action-btn del"    onclick="deleteSKU(${s.id})">삭제</button>
          </div>`
       : `<div></div>
          <div class="sku-actions">
+           <button class="sku-action-btn edit"    onclick="startEditSKU(${s.id})">✏️ 수정</button>
            <button class="sku-action-btn resolve" onclick="resolveSKU(${s.id})">✅ 해결</button>
            <button class="sku-action-btn del"     onclick="deleteSKU(${s.id})">삭제</button>
          </div>`;
 
-    return `<div class="sku-card ${s.resolved ? 'resolved' : ''}">
+    return `<div class="sku-card ${s.resolved ? 'resolved' : ''}" id="sku-card-${s.id}">
       <div class="sku-card-head">
         <div class="sku-card-content">${s.content}</div>
         <span class="sku-card-date">📅 ${s.date}</span>
@@ -1103,6 +1141,64 @@ function renderSKUList() {
   }).join('');
 
   document.getElementById('sku-list').innerHTML = html;
+
+  // 편집 중이면 해당 카드로 스크롤 + 포커스
+  if (editingSKU) {
+    const card = document.getElementById(`sku-card-${editingSKU}`);
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setTimeout(() => {
+        const ta = document.getElementById(`edit-content-${editingSKU}`);
+        if (ta) { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); }
+      }, 100);
+    }
+  }
+}
+
+// ── 편집 제어 함수 ──
+function startEditSKU(id) {
+  editingSKU = id;
+  updateFormTitle();
+  renderSKUList();
+}
+
+function cancelEditSKU() {
+  editingSKU = null;
+  updateFormTitle();
+  renderSKUList();
+}
+
+function saveEditSKU(id) {
+  const sku  = SKUS.find(s => s.id === id);
+  if (!sku) return;
+  const date    = document.getElementById(`edit-date-${id}`)?.value.trim();
+  const content = document.getElementById(`edit-content-${id}`)?.value.trim();
+  const note    = document.getElementById(`edit-note-${id}`)?.value.trim();
+  if (!date || !content) { toast('⚠️ 날짜와 내용은 필수입니다'); return; }
+  sku.date    = date;
+  sku.content = content;
+  sku.note    = note;
+  LS.set('kc_skus_v1', SKUS);
+  editingSKU = null;
+  updateFormTitle();
+  renderSKUList();
+  renderSKUHome();
+  toast('✅ 수정이 저장되었습니다');
+}
+
+function updateFormTitle() {
+  const wrap = document.getElementById('sku-form-wrap');
+  if (!wrap) return;
+  const titleEl = wrap.querySelector('.sku-form-section-title');
+  if (editingSKU) {
+    if (titleEl) titleEl.textContent = '✏️ 수정 모드 — 아래 목록에서 항목을 직접 수정하세요';
+    wrap.style.opacity = '0.45';
+    wrap.style.pointerEvents = 'none';
+  } else {
+    if (titleEl) titleEl.textContent = '새 SKU 등록';
+    wrap.style.opacity = '1';
+    wrap.style.pointerEvents = '';
+  }
 }
 
 // ══════════════════════════════════════════
