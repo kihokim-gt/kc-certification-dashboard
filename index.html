@@ -281,6 +281,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .sku-card:hover{border-color:#3a3a50}
 .sku-card.resolved{opacity:.7}
 .sku-card.editing{border-color:var(--accent);background:rgba(129,140,248,.05)}
+.sku-card.clickable{cursor:pointer}
+.sku-card.clickable:hover{border-color:var(--accent);background:rgba(129,140,248,.04)}
+.sku-edit-hint{font-size:11px;color:var(--text-muted);opacity:0;transition:opacity .15s;flex-shrink:0}
+.sku-card.clickable:hover .sku-edit-hint{opacity:1}
 .sku-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
 .sku-card-date{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);
   background:var(--surface);padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0}
@@ -397,6 +401,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <button class="search-clear" id="search-clear" onclick="clearSearch()">×</button>
 </div>
 
+<!-- SKU 홈 위젯 -->
+<div class="sku-widget" id="sku-home-widget">
+  <div class="sku-widget-head">
+    <div class="sku-widget-title">
+      ➕ 신규 SKU 현황
+      <span class="sku-widget-badge" id="sku-home-badge">0건</span>
+    </div>
+    <button class="sku-widget-link" onclick="openSKU()">전체보기 / 추가 →</button>
+  </div>
+  <div id="sku-home-list"></div>
+</div>
+
 <!-- KPI -->
 <div class="kpi-grid">
   <div class="kpi-card incomplete">
@@ -431,18 +447,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
-
-<!-- SKU 홈 위젯 -->
-<div class="sku-widget" id="sku-home-widget">
-  <div class="sku-widget-head">
-    <div class="sku-widget-title">
-      ➕ 신규 SKU 현황
-      <span class="sku-widget-badge" id="sku-home-badge">0건</span>
-    </div>
-    <button class="sku-widget-link" onclick="openSKU()">전체보기 / 추가 →</button>
-  </div>
-  <div id="sku-home-list"></div>
-</div>
 
 <!-- Tabs -->
 <div class="tabs">
@@ -973,14 +977,25 @@ let SKUS      = LS.get('kc_skus_v1', []);  // { id, date, content, note, resolve
 let skuTab    = 'open'; // 'open' | 'closed'
 let editingSKU = null;  // 현재 편집 중인 SKU id
 
-// 홈 위젯 클릭 → 해당 항목 편집 모드로 패널 열기
+// 홈 위젯 클릭 → 해당 탭으로 이동 후 목록만 표시 (수정은 카드 클릭으로)
 function openSKUEdit(id) {
   openSKU();
-  // 약간 딜레이 후 해당 항목 스크롤 + 편집 모드
+  // 딜레이 후 해당 탭으로 이동 + 해당 카드로 스크롤만
   setTimeout(() => {
-    const tab = SKUS.find(s => s.id === id)?.resolved ? 'closed' : 'open';
+    const sku = SKUS.find(s => s.id === id);
+    if (!sku) return;
+    const tab = sku.resolved ? 'closed' : 'open';
     setSKUTab(tab);
-    setTimeout(() => startEditSKU(id), 50);
+    setTimeout(() => {
+      const card = document.getElementById('sku-card-' + id);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // 잠깐 하이라이트 효과
+        card.style.borderColor = 'var(--accent)';
+        card.style.transition  = 'border-color .3s';
+        setTimeout(() => { card.style.borderColor = ''; }, 1200);
+      }
+    }, 60);
   }, 80);
 }
 
@@ -1106,8 +1121,8 @@ function renderSKUList() {
           <input class="sku-input" type="text" id="edit-note-${s.id}" value="${s.note||''}">
         </div>
         <div style="display:flex;gap:6px;margin-top:4px">
-          <button class="sku-submit-btn" style="flex:1" onclick="saveEditSKU(${s.id})">💾 저장</button>
-          <button class="sku-action-btn" style="padding:9px 14px" onclick="cancelEditSKU()">취소</button>
+          <button class="sku-submit-btn" style="flex:1" onclick="event.stopPropagation();saveEditSKU(${s.id})">💾 저장</button>
+          <button class="sku-action-btn" style="padding:9px 14px" onclick="event.stopPropagation();cancelEditSKU()">취소</button>
         </div>
       </div>`;
     }
@@ -1119,21 +1134,23 @@ function renderSKUList() {
           <span class="sku-resolved-date">${resolvedDate}</span>
          </div>
          <div class="sku-actions">
-           <button class="sku-action-btn edit"   onclick="startEditSKU(${s.id})">✏️ 수정</button>
-           <button class="sku-action-btn reopen" onclick="reopenSKU(${s.id})">↩ 재오픈</button>
-           <button class="sku-action-btn del"    onclick="deleteSKU(${s.id})">삭제</button>
+           <button class="sku-action-btn reopen" onclick="event.stopPropagation();reopenSKU(${s.id})">↩ 재오픈</button>
+           <button class="sku-action-btn del"    onclick="event.stopPropagation();deleteSKU(${s.id})">삭제</button>
          </div>`
       : `<div></div>
          <div class="sku-actions">
-           <button class="sku-action-btn edit"    onclick="startEditSKU(${s.id})">✏️ 수정</button>
-           <button class="sku-action-btn resolve" onclick="resolveSKU(${s.id})">✅ 해결</button>
-           <button class="sku-action-btn del"     onclick="deleteSKU(${s.id})">삭제</button>
+           <button class="sku-action-btn resolve" onclick="event.stopPropagation();resolveSKU(${s.id})">✅ 해결</button>
+           <button class="sku-action-btn del"     onclick="event.stopPropagation();deleteSKU(${s.id})">삭제</button>
          </div>`;
 
-    return `<div class="sku-card ${s.resolved ? 'resolved' : ''}" id="sku-card-${s.id}">
+    return `<div class="sku-card ${s.resolved ? 'resolved' : ''} clickable" id="sku-card-${s.id}"
+      onclick="startEditSKU(${s.id})" title="클릭하여 수정">
       <div class="sku-card-head">
         <div class="sku-card-content">${s.content}</div>
-        <span class="sku-card-date">📅 ${s.date}</span>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
+          <span class="sku-card-date">📅 ${s.date}</span>
+          <span class="sku-edit-hint">✏️</span>
+        </div>
       </div>
       ${s.note ? `<div class="sku-card-note">📌 ${s.note}</div>` : ''}
       <div class="sku-card-foot">${footContent}</div>
