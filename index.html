@@ -206,6 +206,40 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   font-family:'Noto Sans KR',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:all .15s}
 .log-clear-btn:hover{background:rgba(239,68,68,.08)}
 
+
+/* ── SKU 홈 위젯 ── */
+.sku-widget{background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:14px 16px;margin-bottom:20px}
+.sku-widget-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sku-widget-title{font-size:12px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:7px}
+.sku-widget-badge{font-family:'Space Mono',monospace;font-size:10px;
+  color:var(--incomplete);background:var(--incomplete-bg);
+  padding:2px 7px;border-radius:4px;font-weight:700}
+.sku-widget-link{font-size:11px;color:var(--accent);cursor:pointer;
+  background:none;border:none;font-family:'Noto Sans KR',sans-serif;font-weight:600;
+  padding:3px 8px;border-radius:5px;transition:background .15s}
+.sku-widget-link:hover{background:rgba(129,140,248,.1)}
+.sku-home-list{display:flex;flex-direction:column;gap:5px}
+.sku-home-item{display:flex;align-items:center;gap:9px;padding:7px 10px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:7px;
+  transition:border-color .15s;cursor:pointer}
+.sku-home-item:hover{border-color:#3a3a50}
+.sku-home-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--progress);
+  box-shadow:0 0 5px var(--progress);animation:blink 2s infinite}
+.sku-home-dot.done{background:var(--complete);box-shadow:0 0 5px var(--complete);animation:none}
+.sku-home-content{flex:1;font-size:11px;font-weight:600;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sku-home-date{font-family:'Space Mono',monospace;font-size:10px;
+  color:var(--text-muted);flex-shrink:0}
+.sku-home-note{font-size:10px;color:var(--text-muted);font-style:italic;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;flex-shrink:0}
+.sku-home-empty{text-align:center;padding:14px;color:var(--text-muted);
+  font-size:12px;line-height:1.8}
+.sku-home-resolve{padding:3px 8px;border-radius:4px;border:1px solid rgba(34,197,94,.3);
+  background:none;color:var(--complete);font-family:'Noto Sans KR',sans-serif;
+  font-size:10px;font-weight:600;cursor:pointer;flex-shrink:0;transition:all .15s}
+.sku-home-resolve:hover{background:rgba(34,197,94,.1)}
+
 /* ── SKU 버튼 강조 ── */
 .sku-btn{border-color:var(--accent);color:var(--accent);background:rgba(129,140,248,.06)}
 .sku-btn:hover{background:rgba(129,140,248,.15)!important}
@@ -392,6 +426,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="legend-item"><div class="legend-dot" style="background:var(--progress)"></div>진행 중</div>
     <div class="legend-item"><div class="legend-dot" style="background:var(--incomplete)"></div>미완료</div>
   </div>
+</div>
+
+
+<!-- SKU 홈 위젯 -->
+<div class="sku-widget" id="sku-home-widget">
+  <div class="sku-widget-head">
+    <div class="sku-widget-title">
+      ➕ 신규 SKU 현황
+      <span class="sku-widget-badge" id="sku-home-badge">0건</span>
+    </div>
+    <button class="sku-widget-link" onclick="openSKU()">전체보기 / 추가 →</button>
+  </div>
+  <div id="sku-home-list"></div>
 </div>
 
 <!-- Tabs -->
@@ -647,6 +694,7 @@ function renderAll() {
   document.getElementById('sub-i').textContent = req > 0 ? `샘플 요청: ${req}건` : '샘플 미발송';
 
   render();
+  renderSKUHome();
 }
 
 // ══════════════════════════════════════════
@@ -868,6 +916,62 @@ function setDate(model, date) {
 }
 
 // ══════════════════════════════════════════
+//  SKU 홈 위젯 렌더
+// ══════════════════════════════════════════
+function renderSKUHome() {
+  const openList = SKUS.filter(s => !s.resolved);
+  const badge    = document.getElementById('sku-home-badge');
+  const listEl   = document.getElementById('sku-home-list');
+  if (!badge || !listEl) return;
+
+  // 배지: 진행 중 건수
+  badge.textContent = openList.length > 0 ? `진행 중 ${openList.length}건` : '없음';
+  badge.style.background    = openList.length > 0 ? 'var(--incomplete-bg)' : 'var(--complete-bg)';
+  badge.style.color         = openList.length > 0 ? 'var(--incomplete)' : 'var(--complete)';
+
+  if (!SKUS.length) {
+    listEl.innerHTML = '<div class="sku-home-empty">등록된 SKU가 없습니다.<br><span style="font-size:11px">우상단 <b>+ 신규SKU추가</b> 버튼으로 등록하세요.</span></div>';
+    return;
+  }
+
+  // 진행 중 먼저, 해결됨은 최대 2개만 표시
+  const pending  = SKUS.filter(s => !s.resolved);
+  const resolved = SKUS.filter(s => s.resolved).slice(0, 2);
+  const show     = [...pending, ...resolved].slice(0, 6); // 최대 6개
+
+  const html = show.map(s => {
+    const resolveBtn = !s.resolved
+      ? `<button class="sku-home-resolve" onclick="event.stopPropagation();resolveSKUHome(${s.id})">✅ 해결</button>`
+      : `<span style="font-size:10px;color:var(--complete);font-weight:600;flex-shrink:0">완료</span>`;
+
+    return `<div class="sku-home-item" onclick="openSKU()">
+      <div class="sku-home-dot ${s.resolved?'done':''}"></div>
+      <span class="sku-home-content">${s.content}</span>
+      ${s.note ? `<span class="sku-home-note">${s.note}</span>` : ''}
+      <span class="sku-home-date">${s.date}</span>
+      ${resolveBtn}
+    </div>`;
+  }).join('');
+
+  const moreCount = SKUS.length - show.length;
+  const more = moreCount > 0
+    ? `<div style="text-align:center;padding:6px 0;font-size:11px;color:var(--text-muted);cursor:pointer" onclick="openSKU()">+ ${moreCount}건 더보기</div>`
+    : '';
+
+  listEl.innerHTML = html + more;
+}
+
+function resolveSKUHome(id) {
+  const sku = SKUS.find(s => s.id === id);
+  if (!sku) return;
+  sku.resolved   = true;
+  sku.resolvedAt = new Date().toISOString();
+  LS.set('kc_skus_v1', SKUS);
+  renderSKUHome();
+  toast('✅ 해결 완료로 처리했습니다');
+}
+
+// ══════════════════════════════════════════
 //  신규 SKU 관리
 // ══════════════════════════════════════════
 let SKUS     = LS.get('kc_skus_v1', []);  // { id, date, content, note, resolved, resolvedAt }
@@ -882,6 +986,7 @@ function openSKU() {
   document.getElementById('sku-date').value    = `${yyyy}-${mm}-${dd}`;
   document.getElementById('sku-content').value = '';
   document.getElementById('sku-note').value    = '';
+  renderSKUHome();
   renderSKUList();
   document.getElementById('sku-overlay').classList.add('show');
 }
@@ -909,6 +1014,7 @@ function addSKU() {
     resolvedAt: null
   });
   LS.set('kc_skus_v1', SKUS);
+  renderSKUHome();
 
   document.getElementById('sku-content').value = '';
   document.getElementById('sku-note').value    = '';
@@ -925,6 +1031,7 @@ function resolveSKU(id) {
   sku.resolvedAt = new Date().toISOString();
   LS.set('kc_skus_v1', SKUS);
   renderSKUList();
+  renderSKUHome();
   toast('✅ 해결 완료로 처리했습니다');
 }
 
@@ -935,6 +1042,7 @@ function reopenSKU(id) {
   sku.resolvedAt = null;
   LS.set('kc_skus_v1', SKUS);
   renderSKUList();
+  renderSKUHome();
   toast('🔄 진행 중으로 되돌렸습니다');
 }
 
@@ -943,6 +1051,7 @@ function deleteSKU(id) {
   SKUS = SKUS.filter(s => s.id !== id);
   LS.set('kc_skus_v1', SKUS);
   renderSKUList();
+  renderSKUHome();
   toast('🗑 삭제되었습니다');
 }
 
@@ -1073,6 +1182,7 @@ function toast(msg) {
 // ══════════════════════════════════════════
 //  시작
 // ══════════════════════════════════════════
+renderSKUHome();
 loadData();
 setInterval(loadData, AUTO_REFRESH_MS);
 </script>
