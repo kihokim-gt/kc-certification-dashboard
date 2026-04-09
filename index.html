@@ -240,6 +240,76 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .sku-status-badge.open{color:var(--progress);background:var(--progress-bg)}
 .sku-status-badge.done{color:var(--complete);background:var(--complete-bg)}
 
+
+/* ── 라이트 모드 ── */
+body.light {
+  --bg:#f4f4f8; --surface:#ffffff; --surface2:#f0f0f5; --border:#d8d8e8;
+  --text:#1a1a2e; --text-muted:#7070a0;
+  --complete-bg:#dcfce7; --progress-bg:#fef3c7; --incomplete-bg:#fee2e2;
+}
+body.light .search-input,
+body.light .sku-input,
+body.light .sku-textarea,
+body.light .notif-input,
+body.light .memo-input{background:#f0f0f5;color:#1a1a2e}
+body.light .model-card,
+body.light .kpi-card,
+body.light .prog-section,
+body.light .tabs,
+body.light .sku-widget,
+body.light .panel,
+body.light .sku-card,
+body.light .sku-form{background:#ffffff}
+body.light .tab-btn.active,
+body.light .sku-home-item{background:#f0f0f5}
+body.light mark{background:rgba(99,102,241,.2)!important}
+
+/* ── 다크/라이트 토글 버튼 ── */
+.theme-btn{display:flex;align-items:center;gap:5px;padding:6px 11px;border-radius:6px;
+  border:1px solid var(--border);background:var(--surface);color:var(--text-muted);
+  font-family:'Noto Sans KR',sans-serif;font-size:11px;font-weight:600;
+  cursor:pointer;transition:all .18s;white-space:nowrap}
+.theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── 인증업체 패널 ── */
+.vendor-card{background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:13px 15px;margin-bottom:9px;
+  cursor:pointer;transition:border-color .15s}
+.vendor-card:hover{border-color:var(--accent)}
+.vendor-card.editing{border-color:var(--accent);background:rgba(129,140,248,.05)}
+.vendor-name{font-size:14px;font-weight:700;margin-bottom:5px}
+.vendor-info-row{display:flex;gap:6px;align-items:center;margin-top:3px;flex-wrap:wrap}
+.vendor-info-label{font-size:10px;color:var(--text-muted);font-weight:600;
+  width:44px;flex-shrink:0}
+.vendor-info-val{font-size:11px;color:var(--text)}
+.vendor-info-val a{color:var(--accent);text-decoration:none}
+.vendor-info-val a:hover{text-decoration:underline}
+.vendor-edit-hint{font-size:10px;color:var(--text-muted);margin-left:auto;opacity:0;transition:opacity .15s}
+.vendor-card:hover .vendor-edit-hint{opacity:1}
+.vendor-actions{display:flex;gap:5px;margin-top:10px;justify-content:flex-end}
+.vendor-add-btn{width:100%;padding:9px;border-radius:7px;border:1px dashed var(--border);
+  background:transparent;color:var(--text-muted);font-family:'Noto Sans KR',sans-serif;
+  font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;margin-top:4px}
+.vendor-add-btn:hover{border-color:var(--accent);color:var(--accent)}
+.vendor-form{background:var(--surface2);border:1px solid var(--accent);
+  border-radius:10px;padding:14px;margin-bottom:9px}
+.vendor-form-title{font-size:11px;font-weight:700;color:var(--accent);
+  letter-spacing:.4px;margin-bottom:12px}
+.vf-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.vf-label{font-size:11px;color:var(--text-muted);width:52px;flex-shrink:0;font-weight:600}
+.vf-input{flex:1;background:var(--surface);border:1px solid var(--border);
+  border-radius:6px;color:var(--text);font-size:12px;padding:6px 9px;
+  outline:none;transition:border-color .15s;font-family:'Noto Sans KR',sans-serif}
+.vf-input:focus{border-color:var(--accent)}
+.vendor-form-btns{display:flex;gap:6px;margin-top:10px}
+.vf-save{flex:1;padding:8px;border-radius:6px;border:none;background:var(--accent);
+  color:white;font-family:'Noto Sans KR',sans-serif;font-size:12px;
+  font-weight:700;cursor:pointer;transition:opacity .15s}
+.vf-save:hover{opacity:.85}
+.vf-cancel{padding:8px 14px;border-radius:6px;border:1px solid var(--border);
+  background:transparent;color:var(--text-muted);font-family:'Noto Sans KR',sans-serif;
+  font-size:12px;cursor:pointer}
+.vendor-empty{text-align:center;padding:28px;color:var(--text-muted);font-size:13px;line-height:1.8}
 /* ── SKU 버튼 강조 ── */
 .sku-btn{border-color:var(--accent);color:var(--accent);background:rgba(129,140,248,.06)}
 .sku-btn:hover{background:rgba(129,140,248,.15)!important}
@@ -373,11 +443,20 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>신규SKU추가
     </button>
-    <button class="icon-btn" onclick="openNotif()">
+    <button class="icon-btn" onclick="openVendor()">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-      </svg>알림
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>인증업체
+    </button>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" id="theme-icon">
+        <circle cx="12" cy="12" r="5"/>
+        <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+        <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+      </svg><span id="theme-label">라이트</span>
     </button>
   </div>
 </div>
@@ -509,61 +588,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
-<!-- 알림 설정 패널 -->
-<div class="overlay" id="notif-overlay" onclick="closePanel('notif-overlay')">
+<!-- 인증업체 정보 패널 -->
+<div class="overlay" id="vendor-overlay" onclick="closePanel('vendor-overlay')">
   <div class="panel" onclick="event.stopPropagation()">
     <div class="panel-head">
-      <span class="panel-title">🔔 알림 설정</span>
-      <button class="panel-close" onclick="closePanel('notif-overlay')">×</button>
+      <span class="panel-title">🏢 인증업체 정보</span>
+      <button class="panel-close" onclick="closePanel('vendor-overlay')">×</button>
     </div>
-
-    <div class="notif-section">
-      <div class="notif-section-title">Slack</div>
-      <div class="notif-row">
-        <span class="notif-row-label">Webhook URL</span>
-        <input class="notif-input" id="slack-url" type="text" placeholder="https://hooks.slack.com/services/...">
-      </div>
-      <div class="notif-row">
-        <span class="notif-row-label">채널</span>
-        <input class="notif-input" id="slack-channel" type="text" placeholder="#kc-certification (선택사항)">
-      </div>
-      <div class="notif-help">
-        Slack 앱 → Incoming Webhooks → 채널 선택 후 Webhook URL을 복사하세요.<br>
-        브라우저 CORS 정책으로 차단될 경우 이메일 알림을 사용하세요.
-      </div>
-    </div>
-
-    <div class="notif-section">
-      <div class="notif-section-title">이메일</div>
-      <div class="notif-row">
-        <span class="notif-row-label">수신 주소</span>
-        <input class="notif-input" id="email-addr" type="email" placeholder="your@email.com">
-      </div>
-      <div class="notif-help">
-        상태 변경 시 기본 메일 앱을 자동으로 열어 메일 초안을 생성합니다.
-      </div>
-    </div>
-
-    <div class="notif-section">
-      <div class="notif-section-title">알림 조건</div>
-      <div class="notif-toggle-row">
-        <div><div class="notif-toggle-label">샘플 요청 시</div>
-          <div class="notif-toggle-sub">미완료 모델을 요청 상태로 변경할 때</div></div>
-        <label class="ios-toggle">
-          <input type="checkbox" id="notif-on-req" checked><span class="ios-slider"></span>
-        </label>
-      </div>
-      <div class="notif-toggle-row">
-        <div><div class="notif-toggle-label">샘플 도착 시</div>
-          <div class="notif-toggle-sub">요청 → 도착 상태로 변경할 때</div></div>
-        <label class="ios-toggle">
-          <input type="checkbox" id="notif-on-arr" checked><span class="ios-slider"></span>
-        </label>
-      </div>
-    </div>
-
-    <button class="notif-test-btn" onclick="sendTest()">🧪 테스트 알림 보내기</button>
-    <button class="notif-save-btn" onclick="saveNotif()">저장</button>
+    <div id="vendor-list"></div>
+    <button class="vendor-add-btn" onclick="startAddVendor()">+ 새 업체 추가</button>
   </div>
 </div>
 
@@ -592,7 +625,7 @@ let LOG   = LS.get('kc_log_v1', []);
 // 로컬 메모
 let MEMOS = LS.get('kc_memos_v1', {});
 // 알림 설정
-let NOTIF = LS.get('kc_notif_v1', { slackUrl:'', slackCh:'', email:'', onReq:true, onArr:true });
+
 
 function persist() {
   LS.set('kc_sample_v2', SS);
@@ -913,8 +946,7 @@ function setSample(model, status) {
   const msg = { requested:'📤 샘플 요청으로 표시했습니다', arrived:'📦 도착 완료로 표시했습니다', none:'초기화했습니다' };
   toast(msg[status] || '');
 
-  if (status === 'requested' && NOTIF.onReq) sendNotif(model, 'requested');
-  if (status === 'arrived'   && NOTIF.onArr) sendNotif(model, 'arrived');
+
 }
 function setDate(model, date) {
   if (!SS[model]) SS[model] = { status:'requested', reqDate:'' };
@@ -1221,64 +1253,156 @@ function updateFormTitle() {
 // ══════════════════════════════════════════
 //  알림 설정 패널
 // ══════════════════════════════════════════
-function openNotif() {
-  document.getElementById('slack-url').value     = NOTIF.slackUrl || '';
-  document.getElementById('slack-channel').value = NOTIF.slackCh  || '';
-  document.getElementById('email-addr').value    = NOTIF.email    || '';
-  document.getElementById('notif-on-req').checked = NOTIF.onReq !== false;
-  document.getElementById('notif-on-arr').checked = NOTIF.onArr !== false;
-  document.getElementById('notif-overlay').classList.add('show');
+
+// ══════════════════════════════════════════
+//  라이트 / 다크 모드 토글
+// ══════════════════════════════════════════
+let isLight = LS.get('kc_theme_v1', false);
+function applyTheme() {
+  document.body.classList.toggle('light', isLight);
+  const label = document.getElementById('theme-label');
+  const icon  = document.getElementById('theme-icon');
+  if (label) label.textContent = isLight ? '다크' : '라이트';
+  if (icon) {
+    icon.innerHTML = isLight
+      ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+      : '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>';
+  }
 }
-function saveNotif() {
-  NOTIF = {
-    slackUrl: document.getElementById('slack-url').value.trim(),
-    slackCh : document.getElementById('slack-channel').value.trim(),
-    email   : document.getElementById('email-addr').value.trim(),
-    onReq   : document.getElementById('notif-on-req').checked,
-    onArr   : document.getElementById('notif-on-arr').checked
-  };
-  LS.set('kc_notif_v1', NOTIF);
-  closePanel('notif-overlay');
-  toast('✅ 알림 설정이 저장되었습니다');
+function toggleTheme() {
+  isLight = !isLight;
+  LS.set('kc_theme_v1', isLight);
+  applyTheme();
 }
 
-async function sendNotif(model, type) {
-  const label = type === 'requested' ? '샘플 요청' : '샘플 도착';
-  const emoji = type === 'requested' ? '📤' : '📦';
-  const reqDate = SS[model]?.reqDate || '';
-  const msg = `${emoji} *[KC인증]* ${label}\n• 모델: *${model}*${reqDate ? ' · 요청일: '+reqDate : ''}`;
+// ══════════════════════════════════════════
+//  인증업체 정보
+// ══════════════════════════════════════════
+const DEFAULT_VENDORS = [
+  { id:1, name:'튜풀테크놀러지', manager:'서성민', phone:'010-8651-5402', email:'smsuh2003@naver.com' },
+  { id:2, name:'나이스인증원',   manager:'오동준', phone:'010-5669-0926', email:'djoh@inice.co.kr' },
+  { id:3, name:'에이블테크',     manager:'김영훈', phone:'010-4458-8911', email:'able@abletech-korea.com' }
+];
+let VENDORS      = LS.get('kc_vendors_v1', DEFAULT_VENDORS);
+let editingVendor = null;
 
-  if (NOTIF.slackUrl) {
-    try {
-      await fetch(NOTIF.slackUrl, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: msg, ...(NOTIF.slackCh && { channel: NOTIF.slackCh }) })
-      });
-    } catch { /* CORS 차단 시 무시 */ }
-  }
-  if (NOTIF.email) {
-    const sub  = encodeURIComponent(`[KC인증] ${label} - ${model}`);
-    const body = encodeURIComponent(`${label} 알림\n\n모델: ${model}\n${reqDate?'요청일: '+reqDate+'\n':''}상태: ${type==='requested'?'샘플 요청됨':'샘플 도착 확인'}\n\n— KC 인증 대시보드 자동 알림`);
-    window.open(`mailto:${NOTIF.email}?subject=${sub}&body=${body}`);
-  }
+function openVendor() {
+  editingVendor = null;
+  renderVendors();
+  document.getElementById('vendor-overlay').classList.add('show');
 }
 
-async function sendTest() {
-  const slackUrl = document.getElementById('slack-url').value.trim();
-  const email    = document.getElementById('email-addr').value.trim();
-  if (!slackUrl && !email) { toast('⚠️ Slack URL 또는 이메일을 먼저 입력하세요'); return; }
-  if (slackUrl) {
-    try {
-      const r = await fetch(slackUrl, { method:'POST', headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ text: '🧪 *[KC인증 대시보드]* 테스트 알림 — 정상 연결되었습니다!' })
-      });
-      toast(r.ok ? '✅ Slack 테스트 전송 완료' : `⚠️ Slack 오류: ${r.status}`);
-    } catch { toast('⚠️ Slack CORS 차단 — 이메일 알림을 사용하세요'); }
+function renderVendors() {
+  const el = document.getElementById('vendor-list');
+  if (!el) return;
+  if (!VENDORS.length && editingVendor !== 'new') {
+    el.innerHTML = '<div class="vendor-empty">📭 등록된 인증업체가 없습니다.</div>';
+    return;
   }
-  if (email) {
-    window.open(`mailto:${email}?subject=${encodeURIComponent('[KC인증] 테스트 알림')}&body=${encodeURIComponent('KC 인증 대시보드 테스트 알림입니다.')}`);
-  }
+  el.innerHTML = VENDORS.map(v => {
+    if (editingVendor === v.id) {
+      return `<div class="vendor-form">
+        <div class="vendor-form-title">✏️ 업체 정보 수정</div>
+        <div class="vf-row"><span class="vf-label">업체명</span>
+          <input class="vf-input" id="vf-name"    value="${vesc(v.name)}"></div>
+        <div class="vf-row"><span class="vf-label">담당자</span>
+          <input class="vf-input" id="vf-manager" value="${vesc(v.manager)}"></div>
+        <div class="vf-row"><span class="vf-label">연락처</span>
+          <input class="vf-input" id="vf-phone"   value="${vesc(v.phone)}" type="tel"></div>
+        <div class="vf-row"><span class="vf-label">이메일</span>
+          <input class="vf-input" id="vf-email"   value="${vesc(v.email)}" type="email"></div>
+        <div class="vendor-form-btns">
+          <button class="vf-save"   onclick="saveVendor(${v.id})">💾 저장</button>
+          <button class="vf-cancel" onclick="cancelVendorEdit()">취소</button>
+          <button class="sku-action-btn del" style="margin-left:auto"
+            onclick="deleteVendor(${v.id})">삭제</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="vendor-card" onclick="startEditVendor(${v.id})">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="vendor-name">🏢 ${v.name}</div>
+        <span class="vendor-edit-hint">✏️ 클릭하여 수정</span>
+      </div>
+      <div class="vendor-info-row">
+        <span class="vendor-info-label">담당자</span>
+        <span class="vendor-info-val">${v.manager}</span>
+      </div>
+      <div class="vendor-info-row">
+        <span class="vendor-info-label">연락처</span>
+        <span class="vendor-info-val">
+          <a href="tel:${v.phone}" onclick="event.stopPropagation()">${v.phone}</a>
+        </span>
+      </div>
+      <div class="vendor-info-row">
+        <span class="vendor-info-label">이메일</span>
+        <span class="vendor-info-val">
+          <a href="mailto:${v.email}" onclick="event.stopPropagation()">${v.email}</a>
+        </span>
+      </div>
+    </div>`;
+  }).join('');
 }
+
+function startEditVendor(id) {
+  editingVendor = id;
+  renderVendors();
+  setTimeout(() => document.getElementById('vf-name')?.focus(), 50);
+}
+function cancelVendorEdit() {
+  editingVendor = null;
+  renderVendors();
+}
+function saveVendor(id) {
+  const name    = document.getElementById('vf-name')?.value.trim();
+  const manager = document.getElementById('vf-manager')?.value.trim();
+  const phone   = document.getElementById('vf-phone')?.value.trim();
+  const email   = document.getElementById('vf-email')?.value.trim();
+  if (!name) { toast('⚠️ 업체명을 입력해 주세요'); return; }
+  if (id === 'new') {
+    VENDORS.push({ id: Date.now(), name, manager: manager||'', phone: phone||'', email: email||'' });
+  } else {
+    const v = VENDORS.find(x => x.id === id);
+    if (v) Object.assign(v, { name, manager: manager||'', phone: phone||'', email: email||'' });
+  }
+  LS.set('kc_vendors_v1', VENDORS);
+  editingVendor = null;
+  renderVendors();
+  toast('✅ 저장되었습니다');
+}
+function deleteVendor(id) {
+  if (!confirm('이 업체를 삭제할까요?')) return;
+  VENDORS = VENDORS.filter(v => v.id !== id);
+  LS.set('kc_vendors_v1', VENDORS);
+  editingVendor = null;
+  renderVendors();
+  toast('🗑 삭제되었습니다');
+}
+function startAddVendor() {
+  editingVendor = 'new';
+  const el = document.getElementById('vendor-list');
+  if (!el) return;
+  renderVendors();
+  const form = document.createElement('div');
+  form.className = 'vendor-form';
+  form.innerHTML = `
+    <div class="vendor-form-title">➕ 새 인증업체 추가</div>
+    <div class="vf-row"><span class="vf-label">업체명</span>
+      <input class="vf-input" id="vf-name"    placeholder="업체 상호"></div>
+    <div class="vf-row"><span class="vf-label">담당자</span>
+      <input class="vf-input" id="vf-manager" placeholder="담당자 이름"></div>
+    <div class="vf-row"><span class="vf-label">연락처</span>
+      <input class="vf-input" id="vf-phone"   placeholder="010-0000-0000" type="tel"></div>
+    <div class="vf-row"><span class="vf-label">이메일</span>
+      <input class="vf-input" id="vf-email"   placeholder="email@example.com" type="email"></div>
+    <div class="vendor-form-btns">
+      <button class="vf-save"   onclick="saveVendor('new')">💾 저장</button>
+      <button class="vf-cancel" onclick="cancelVendorEdit()">취소</button>
+    </div>`;
+  el.appendChild(form);
+  setTimeout(() => document.getElementById('vf-name')?.focus(), 50);
+}
+function vesc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
 
 // ══════════════════════════════════════════
 //  공통 유틸
@@ -1295,6 +1419,7 @@ function toast(msg) {
 // ══════════════════════════════════════════
 //  시작
 // ══════════════════════════════════════════
+applyTheme();
 renderSKUHome();
 loadData();
 setInterval(loadData, AUTO_REFRESH_MS);
