@@ -237,10 +237,28 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;flex-shrink:0}
 .sku-home-empty{text-align:center;padding:14px;color:var(--text-muted);
   font-size:12px;line-height:1.8}
-.sku-status-badge{font-size:10px;font-weight:600;padding:2px 7px;
-  border-radius:4px;white-space:nowrap;flex-shrink:0}
-.sku-status-badge.open{color:var(--progress);background:var(--progress-bg)}
-.sku-status-badge.done{color:var(--complete);background:var(--complete-bg)}
+.sku-status-badge{font-size:10px;font-weight:700;padding:2px 8px;
+  border-radius:4px;white-space:nowrap;flex-shrink:0;letter-spacing:.2px}
+.sku-status-badge.pending  {color:#f472b6;background:rgba(244,114,182,.12)}
+.sku-status-badge.inprogress{color:var(--progress);background:var(--progress-bg)}
+.sku-status-badge.payment  {color:#a78bfa;background:rgba(167,139,250,.15)}
+.sku-status-badge.done     {color:var(--complete);background:var(--complete-bg)}
+
+/* 단계 표시 바 */
+.sku-step-bar{display:flex;align-items:center;gap:0;margin:10px 0 6px}
+.sku-step{display:flex;align-items:center;gap:4px;flex:1}
+.sku-step-dot{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);
+  background:var(--surface2);display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;flex-shrink:0;transition:all .2s;color:var(--text-muted)}
+.sku-step-dot.active{border-color:currentColor}
+.sku-step-dot.s-pending  {color:#f472b6;background:rgba(244,114,182,.15)}
+.sku-step-dot.s-inprogress{color:var(--progress);background:rgba(245,158,11,.12)}
+.sku-step-dot.s-payment  {color:#a78bfa;background:rgba(167,139,250,.15)}
+.sku-step-dot.s-done     {color:var(--complete);background:var(--complete-bg)}
+.sku-step-line{flex:1;height:2px;background:var(--border);margin:0 2px;min-width:8px}
+.sku-step-line.active{background:var(--accent)}
+.sku-step-label{font-size:9px;color:var(--text-muted);white-space:nowrap}
+.sku-step-label.active{color:var(--text);font-weight:700}
 
 
 
@@ -412,11 +430,11 @@ body.light .mm-status-btn{background:#f0f0f5}
 .sku-submit-btn:hover{opacity:.85}
 
 /* ── SKU 탭 ── */
-.sku-tabs{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);
-  border-radius:8px;padding:4px;margin-bottom:12px}
-.sku-tab{flex:1;padding:7px;border:none;border-radius:6px;background:transparent;
-  color:var(--text-muted);font-family:'Noto Sans KR',sans-serif;font-size:12px;
-  font-weight:600;cursor:pointer;transition:all .18s}
+.sku-tabs{display:flex;gap:3px;background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:4px;margin-bottom:12px;overflow-x:auto}
+.sku-tab{flex:1;padding:6px 4px;border:none;border-radius:6px;background:transparent;
+  color:var(--text-muted);font-family:'Noto Sans KR',sans-serif;font-size:11px;
+  font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap}
 .sku-tab:hover{background:var(--surface)}
 .sku-tab.active{background:var(--surface);color:var(--text)}
 
@@ -656,8 +674,11 @@ body.light .mm-status-btn{background:#f0f0f5}
 
     <!-- 탭: 진행중 / 해결됨 -->
     <div class="sku-tabs">
-      <button class="sku-tab active" id="sku-tab-open"   onclick="setSKUTab('open')">⏳ 진행 중</button>
-      <button class="sku-tab"        id="sku-tab-closed" onclick="setSKUTab('closed')">✅ 해결됨</button>
+      <button class="sku-tab active" id="sku-tab-all"        onclick="setSKUTab('all')">전체</button>
+      <button class="sku-tab"        id="sku-tab-pending"    onclick="setSKUTab('pending')">🔔 요청</button>
+      <button class="sku-tab"        id="sku-tab-inprogress" onclick="setSKUTab('inprogress')">⚙️ 진행중</button>
+      <button class="sku-tab"        id="sku-tab-payment"    onclick="setSKUTab('payment')">💳 송금요청</button>
+      <button class="sku-tab"        id="sku-tab-done"       onclick="setSKUTab('done')">✅ 완료</button>
     </div>
     <div id="sku-list"></div>
   </div>
@@ -1103,33 +1124,32 @@ function setDate(model, date) {
 //  SKU 홈 위젯 렌더
 // ══════════════════════════════════════════
 function renderSKUHome() {
-  const openList = SKUS.filter(s => !s.resolved);
-  const badge    = document.getElementById('sku-home-badge');
-  const listEl   = document.getElementById('sku-home-list');
+  SKUS.forEach(migrateSKU);
+  const activeList = SKUS.filter(s => s.skuStatus !== 'done');
+  const badge  = document.getElementById('sku-home-badge');
+  const listEl = document.getElementById('sku-home-list');
   if (!badge || !listEl) return;
 
-  badge.textContent         = openList.length > 0 ? `진행 중 ${openList.length}건` : '없음';
-  badge.style.background    = openList.length > 0 ? 'var(--incomplete-bg)' : 'var(--complete-bg)';
-  badge.style.color         = openList.length > 0 ? 'var(--incomplete)' : 'var(--complete)';
+  badge.textContent      = activeList.length > 0 ? `진행 중 ${activeList.length}건` : '없음';
+  badge.style.background = activeList.length > 0 ? 'var(--incomplete-bg)' : 'var(--complete-bg)';
+  badge.style.color      = activeList.length > 0 ? 'var(--incomplete)'    : 'var(--complete)';
 
   if (!SKUS.length) {
     listEl.innerHTML = '<div class="sku-home-empty">등록된 SKU가 없습니다.<br><span style="font-size:11px">우상단 <b>+ 신규SKU추가</b> 버튼으로 등록하세요.</span></div>';
     return;
   }
 
-  // 진행 중 우선, 해결됨 최대 2개
-  const pending  = SKUS.filter(s => !s.resolved);
-  const resolved = SKUS.filter(s => s.resolved).slice(0, 2);
-  const show     = [...pending, ...resolved].slice(0, 6);
+  // 미완료 먼저, 완료 최대 2개
+  const active   = SKUS.filter(s => s.skuStatus !== 'done');
+  const done     = SKUS.filter(s => s.skuStatus === 'done').slice(0, 2);
+  const show     = [...active, ...done].slice(0, 6);
 
   const html = show.map(s => {
-    // 상태 뱃지 (해결 버튼 없이 상태만 표시)
-    const statusBadge = s.resolved
-      ? `<span class="sku-status-badge done">✅ 완료</span>`
-      : `<span class="sku-status-badge open">⏳ 진행 중</span>`;
-
+    const step = getStep(s.skuStatus || 'pending');
+    const dotCls = s.skuStatus === 'done' ? 'done' : 'open';
+    const statusBadge = `<span class="sku-status-badge ${step.cls||''}">${step.label}</span>`;
     return `<div class="sku-home-item" onclick="openSKUEdit(${s.id})">
-      <div class="sku-home-dot ${s.resolved?'done':''}"></div>
+      <div class="sku-home-dot ${dotCls}"></div>
       <span class="sku-home-content">${s.content}</span>
       ${s.note ? `<span class="sku-home-note">${s.note}</span>` : ''}
       <span class="sku-home-date">${s.date}</span>
@@ -1148,8 +1168,8 @@ function renderSKUHome() {
 // ══════════════════════════════════════════
 //  신규 SKU 관리
 // ══════════════════════════════════════════
-let SKUS      = LS.get('kc_skus_v1', []);  // { id, date, content, note, resolved, resolvedAt }
-let skuTab    = 'open'; // 'open' | 'closed'
+let SKUS      = LS.get('kc_skus_v1', []);  // { id, date, content, note, skuStatus: 'pending'|'inprogress'|'payment'|'done' }
+let skuTab    = 'all'; // 'all'|'pending'|'inprogress'|'payment'|'done'
 let editingSKU = null;  // 현재 편집 중인 SKU id
 
 // 홈 위젯 클릭 → 해당 탭으로 이동 후 목록만 표시 (수정은 카드 클릭으로)
@@ -1159,7 +1179,7 @@ function openSKUEdit(id) {
   setTimeout(() => {
     const sku = SKUS.find(s => s.id === id);
     if (!sku) return;
-    const tab = sku.resolved ? 'closed' : 'open';
+    const tab = sku.skuStatus || 'pending';
     setSKUTab(tab);
     setTimeout(() => {
       const card = document.getElementById('sku-card-' + id);
@@ -1193,8 +1213,10 @@ function openSKU() {
 
 function setSKUTab(tab) {
   skuTab = tab;
-  document.getElementById('sku-tab-open').classList.toggle('active',   tab === 'open');
-  document.getElementById('sku-tab-closed').classList.toggle('active', tab === 'closed');
+  ['all','pending','inprogress','payment','done'].forEach(t => {
+    const el = document.getElementById('sku-tab-' + t);
+    if (el) el.classList.toggle('active', t === tab);
+  });
   renderSKUList();
 }
 
@@ -1210,7 +1232,7 @@ function addSKU() {
     date      : date,
     content   : content,
     note      : note,
-    resolved  : false,
+    skuStatus : 'pending',
     resolvedAt: null
   });
   LS.set('kc_skus_v1', SKUS);
@@ -1229,23 +1251,36 @@ function addSKU() {
 function resolveSKU(id) {
   const sku = SKUS.find(s => s.id === id);
   if (!sku) return;
-  sku.resolved   = true;
+  sku.skuStatus  = 'done';
   sku.resolvedAt = new Date().toISOString();
   LS.set('kc_skus_v1', SKUS);
   renderSKUList();
   renderSKUHome();
-  toast('✅ 해결 완료로 처리했습니다');
+  toast('✅ 완료로 처리했습니다');
+}
+
+function setSkuStatus(id, status) {
+  const sku = SKUS.find(s => s.id === id);
+  if (!sku) return;
+  sku.skuStatus = status;
+  if (status === 'done') sku.resolvedAt = new Date().toISOString();
+  else sku.resolvedAt = null;
+  LS.set('kc_skus_v1', SKUS);
+  renderSKUList();
+  renderSKUHome();
+  const labels = {pending:'🔔 요청', inprogress:'⚙️ 진행중', payment:'💳 송금요청', done:'✅ 완료'};
+  toast(`${labels[status]||status}(으)로 변경되었습니다`);
 }
 
 function reopenSKU(id) {
   const sku = SKUS.find(s => s.id === id);
   if (!sku) return;
-  sku.resolved   = false;
+  sku.skuStatus  = 'pending';
   sku.resolvedAt = null;
   LS.set('kc_skus_v1', SKUS);
   renderSKUList();
   renderSKUHome();
-  toast('🔄 진행 중으로 되돌렸습니다');
+  toast('🔔 요청 단계로 되돌렸습니다');
 }
 
 function deleteSKU(id) {
@@ -1257,19 +1292,51 @@ function deleteSKU(id) {
   toast('🗑 삭제되었습니다');
 }
 
-function renderSKUList() {
-  const list = SKUS.filter(s => skuTab === 'open' ? !s.resolved : s.resolved);
-  const openCnt   = SKUS.filter(s => !s.resolved).length;
-  const closedCnt = SKUS.filter(s => s.resolved).length;
+// 단계 정의
+const SKU_STEPS = [
+  { key:'pending',    label:'🔔 요청',    short:'요청',    cls:'s-pending',   next:'inprogress' },
+  { key:'inprogress', label:'⚙️ 진행중',  short:'진행중',  cls:'s-inprogress',next:'payment' },
+  { key:'payment',    label:'💳 송금요청', short:'송금요청', cls:'s-payment',   next:'done' },
+  { key:'done',       label:'✅ 완료',    short:'완료',    cls:'s-done',      next:null }
+];
+function getStep(key) { return SKU_STEPS.find(s => s.key === key) || SKU_STEPS[0]; }
+// 기존 데이터 마이그레이션: resolved:true → done, resolved:false → pending
+function migrateSKU(s) {
+  if (!s.skuStatus) {
+    s.skuStatus = s.resolved ? 'done' : 'pending';
+  }
+  return s;
+}
 
-  document.getElementById('sku-tab-open').textContent   = `⏳ 진행 중 (${openCnt})`;
-  document.getElementById('sku-tab-closed').textContent = `✅ 해결됨 (${closedCnt})`;
+function renderSKUList() {
+  SKUS.forEach(migrateSKU);
+  const counts = { all:SKUS.length, pending:0, inprogress:0, payment:0, done:0 };
+  SKUS.forEach(s => { if (counts[s.skuStatus] !== undefined) counts[s.skuStatus]++; });
+
+  const tabLabels = {
+    all:`전체 (${counts.all})`,
+    pending:`🔔 요청 (${counts.pending})`,
+    inprogress:`⚙️ 진행중 (${counts.inprogress})`,
+    payment:`💳 송금요청 (${counts.payment})`,
+    done:`✅ 완료 (${counts.done})`
+  };
+  Object.entries(tabLabels).forEach(([k,v]) => {
+    const el = document.getElementById('sku-tab-' + k);
+    if (el) el.textContent = v;
+  });
+
+  const list = skuTab === 'all' ? SKUS : SKUS.filter(s => s.skuStatus === skuTab);
 
   if (!list.length) {
+    const emptyMsg = {
+      all:'📭 등록된 SKU가 없습니다.<br>위 폼에서 새 SKU를 등록해 보세요.',
+      pending:'🔔 요청 단계의 SKU가 없습니다.',
+      inprogress:'⚙️ 진행중인 SKU가 없습니다.',
+      payment:'💳 송금요청 단계의 SKU가 없습니다.',
+      done:'✅ 완료된 SKU가 없습니다.'
+    };
     document.getElementById('sku-list').innerHTML =
-      `<div class="sku-empty">${skuTab === 'open'
-        ? '📭 진행 중인 SKU가 없습니다.<br>위 폼에서 새 SKU를 등록해 보세요.'
-        : '📂 해결된 SKU가 없습니다.'}</div>`;
+      `<div class="sku-empty">${emptyMsg[skuTab]||'해당 SKU가 없습니다.'}</div>`;
     return;
   }
 
@@ -1303,20 +1370,43 @@ function renderSKUList() {
     }
 
     // ── 일반 모드 ──
-    const footContent = s.resolved
-      ? `<div style="display:flex;align-items:center;gap:8px">
-          <span class="sku-resolved-badge">✅ 해결 완료</span>
-          <span class="sku-resolved-date">${resolvedDate}</span>
-         </div>
-         <div class="sku-actions">
-           <button class="sku-action-btn reopen" onclick="event.stopPropagation();reopenSKU(${s.id})">↩ 재오픈</button>
-           <button class="sku-action-btn del"    onclick="event.stopPropagation();deleteSKU(${s.id})">삭제</button>
-         </div>`
-      : `<div></div>
-         <div class="sku-actions">
-           <button class="sku-action-btn resolve" onclick="event.stopPropagation();resolveSKU(${s.id})">✅ 해결</button>
-           <button class="sku-action-btn del"     onclick="event.stopPropagation();deleteSKU(${s.id})">삭제</button>
-         </div>`;
+    const step   = getStep(s.skuStatus || 'pending');
+    const nextStep = step.next ? getStep(step.next) : null;
+    // 단계 진행 바
+    const stepBar = `<div class="sku-step-bar">
+      ${SKU_STEPS.map((st, i) => {
+        const isActive  = SKU_STEPS.findIndex(x=>x.key===s.skuStatus) >= i;
+        const isCurrent = st.key === s.skuStatus;
+        return (i < SKU_STEPS.length - 1)
+          ? `<div class="sku-step">
+              <div class="sku-step-dot ${isActive?'active '+st.cls:''}" title="${st.short}">${i+1}</div>
+              <div class="sku-step-line ${isActive && !isCurrent?'active':''}"></div>
+            </div>`
+          : `<div class="sku-step-dot ${isActive?'active '+st.cls:''}" title="${st.short}">${i+1}</div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px">
+      ${SKU_STEPS.map(st => `<span style="font-size:9px;color:${st.key===s.skuStatus?'var(--text)':'var(--text-muted)'};
+        font-weight:${st.key===s.skuStatus?'700':'400'}">${st.short}</span>`).join('<span style="font-size:9px;color:var(--text-muted)">›</span>')}
+    </div>`;
+
+    const footContent = `<div style="width:100%">${stepBar}</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:4px">
+        <div style="display:flex;align-items:center;gap:6px">
+          <span class="sku-status-badge ${step.cls||''}">${step.label}</span>
+          ${s.resolvedAt&&s.skuStatus==='done' ? `<span class="sku-resolved-date">${resolvedDate}</span>` : ''}
+        </div>
+        <div class="sku-actions">
+          ${nextStep
+            ? `<button class="sku-action-btn resolve" style="white-space:nowrap"
+                onclick="event.stopPropagation();setSkuStatus(${s.id},'${nextStep.key}')">
+                ${nextStep.label} →</button>`
+            : `<button class="sku-action-btn reopen"
+                onclick="event.stopPropagation();reopenSKU(${s.id})">↩ 재요청</button>`
+          }
+          <button class="sku-action-btn del" onclick="event.stopPropagation();deleteSKU(${s.id})">삭제</button>
+        </div>
+      </div>`;
 
     return `<div class="sku-card ${s.resolved ? 'resolved' : ''} clickable" id="sku-card-${s.id}"
       onclick="startEditSKU(${s.id})" title="클릭하여 수정">
