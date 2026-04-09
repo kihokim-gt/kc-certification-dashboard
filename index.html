@@ -748,13 +748,8 @@ body.light .mm-status-btn{background:#f0f0f5}
       <div class="mm-section">
         <label class="mm-label">샘플 요청 내용</label>
         <textarea class="mm-textarea" id="mm-req-content"
-          placeholder="샘플 요청 내용을 자유롭게 작성하세요.&#10;(요청 수량, 모델 버전, 특이사항 등)"></textarea>
-      </div>
-
-      <div class="mm-section">
-        <label class="mm-label">비고</label>
-        <textarea class="mm-textarea" id="mm-req-note" style="min-height:70px"
-          placeholder="추가 참고사항, 주의사항 등"></textarea>
+          placeholder="샘플 요청 내용을 자유롭게 작성하세요.&#10;(요청 수량, 모델 버전, 특이사항 등)"
+          style="min-height:200px"></textarea>
       </div>
 
       <div class="mm-section">
@@ -1754,7 +1749,6 @@ function openModelModal(model) {
   const st = gs(model);
   document.getElementById('mm-req-date').value    = st.reqDate    || '';
   document.getElementById('mm-req-content').value = st.reqContent || '';
-  document.getElementById('mm-req-note').value    = st.reqNote    || '';
   document.getElementById('mm-memo').value        = gm(model)     || (d?.sheetMemo || '');
 
   // 상태 버튼
@@ -1785,7 +1779,6 @@ function saveModelModal() {
   if (!mmModel) return;
   const reqDate    = document.getElementById('mm-req-date').value.trim();
   const reqContent = document.getElementById('mm-req-content').value.trim();
-  const reqNote    = document.getElementById('mm-req-note').value.trim();
   const memo       = document.getElementById('mm-memo').value.trim();
 
   // 샘플 상태 저장
@@ -1793,7 +1786,6 @@ function saveModelModal() {
   SS[mmModel].status     = mmStatus;
   SS[mmModel].reqDate    = reqDate;
   SS[mmModel].reqContent = reqContent;
-  SS[mmModel].reqNote    = reqNote;
 
   // 이력 기록 (상태가 none이 아닐 때)
   if (mmStatus !== 'none') {
