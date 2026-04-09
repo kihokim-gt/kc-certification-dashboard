@@ -1281,9 +1281,9 @@ function toggleTheme() {
 //  인증업체 정보
 // ══════════════════════════════════════════
 const DEFAULT_VENDORS = [
-  { id:1, name:'튜풀테크놀러지', manager:'서성민', phone:'010-8651-5402', email:'smsuh2003@naver.com' },
-  { id:2, name:'나이스인증원',   manager:'오동준', phone:'010-5669-0926', email:'djoh@inice.co.kr' },
-  { id:3, name:'에이블테크',     manager:'김영훈', phone:'010-4458-8911', email:'able@abletech-korea.com' }
+  { id:1, name:'튜풀테크놀러지', manager:'서성민', phone:'010-8651-5402', email:'smsuh2003@naver.com', address:'경기도 안양시 동안구 관양동 810 금강펜테리움 IT타워 지하B 114,115호' },
+  { id:2, name:'나이스인증원',   manager:'오동준', phone:'010-5669-0926', email:'djoh@inice.co.kr',    address:'경기도 군포시 군포첨단산업2로 46, 3층(부곡동)' },
+  { id:3, name:'에이블테크',     manager:'김영훈', phone:'010-4458-8911', email:'able@abletech-korea.com', address:'경기도 용인시 기흥구 서천로201번길 31, 918호(이너매스허브시티)' }
 ];
 let VENDORS      = LS.get('kc_vendors_v1', DEFAULT_VENDORS);
 let editingVendor = null;
@@ -1313,6 +1313,8 @@ function renderVendors() {
           <input class="vf-input" id="vf-phone"   value="${vesc(v.phone)}" type="tel"></div>
         <div class="vf-row"><span class="vf-label">이메일</span>
           <input class="vf-input" id="vf-email"   value="${vesc(v.email)}" type="email"></div>
+        <div class="vf-row" style="align-items:flex-start"><span class="vf-label" style="padding-top:6px">주소</span>
+          <textarea class="vf-input" id="vf-address" rows="2" style="resize:vertical;line-height:1.5">${vesc(v.address||'')}</textarea></div>
         <div class="vendor-form-btns">
           <button class="vf-save"   onclick="saveVendor(${v.id})">💾 저장</button>
           <button class="vf-cancel" onclick="cancelVendorEdit()">취소</button>
@@ -1342,6 +1344,10 @@ function renderVendors() {
           <a href="mailto:${v.email}" onclick="event.stopPropagation()">${v.email}</a>
         </span>
       </div>
+      ${v.address ? `<div class="vendor-info-row" style="align-items:flex-start">
+        <span class="vendor-info-label">주소</span>
+        <span class="vendor-info-val" style="white-space:normal;line-height:1.5">${v.address}</span>
+      </div>` : ''}
     </div>`;
   }).join('');
 }
@@ -1360,12 +1366,13 @@ function saveVendor(id) {
   const manager = document.getElementById('vf-manager')?.value.trim();
   const phone   = document.getElementById('vf-phone')?.value.trim();
   const email   = document.getElementById('vf-email')?.value.trim();
+  const address = document.getElementById('vf-address')?.value.trim();
   if (!name) { toast('⚠️ 업체명을 입력해 주세요'); return; }
   if (id === 'new') {
-    VENDORS.push({ id: Date.now(), name, manager: manager||'', phone: phone||'', email: email||'' });
+    VENDORS.push({ id: Date.now(), name, manager: manager||'', phone: phone||'', email: email||'', address: address||'' });
   } else {
     const v = VENDORS.find(x => x.id === id);
-    if (v) Object.assign(v, { name, manager: manager||'', phone: phone||'', email: email||'' });
+    if (v) Object.assign(v, { name, manager: manager||'', phone: phone||'', email: email||'', address: address||'' });
   }
   LS.set('kc_vendors_v1', VENDORS);
   editingVendor = null;
@@ -1397,6 +1404,8 @@ function startAddVendor() {
       <input class="vf-input" id="vf-phone"   placeholder="010-0000-0000" type="tel"></div>
     <div class="vf-row"><span class="vf-label">이메일</span>
       <input class="vf-input" id="vf-email"   placeholder="email@example.com" type="email"></div>
+    <div class="vf-row" style="align-items:flex-start"><span class="vf-label" style="padding-top:6px">주소</span>
+      <textarea class="vf-input" id="vf-address" rows="2" placeholder="업체 주소" style="resize:vertical;line-height:1.5"></textarea></div>
     <div class="vendor-form-btns">
       <button class="vf-save"   onclick="saveVendor('new')">💾 저장</button>
       <button class="vf-cancel" onclick="cancelVendorEdit()">취소</button>
