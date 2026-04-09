@@ -676,7 +676,7 @@ body.light .mm-status-btn{background:#f0f0f5}
 </div>
 
 <!-- 모델 수정 모달 -->
-<div class="model-modal-overlay" id="model-modal-overlay" onclick="closeModelModal()">
+<div class="model-modal-overlay" id="model-modal-overlay">
   <div class="model-modal" onclick="event.stopPropagation()">
     <div class="mm-header">
       <div>
@@ -1679,6 +1679,19 @@ function toast(msg) {
 applyTheme();
 renderSKUHome();
 loadData();
+
+// ESC 키로 모달 닫기
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    if (document.getElementById('model-modal-overlay').classList.contains('show')) {
+      closeModelModal();
+    } else if (document.getElementById('sku-overlay').classList.contains('show')) {
+      closePanel('sku-overlay');
+    } else if (document.getElementById('vendor-overlay').classList.contains('show')) {
+      closePanel('vendor-overlay');
+    }
+  }
+});
 setInterval(loadData, AUTO_REFRESH_MS);
 </script>
 </body>
