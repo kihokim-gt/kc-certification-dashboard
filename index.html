@@ -222,10 +222,35 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   padding:3px 8px;border-radius:5px;transition:background .15s}
 .sku-widget-link:hover{background:rgba(129,140,248,.1)}
 .sku-home-list{display:flex;flex-direction:column;gap:5px}
-.sku-home-item{display:flex;align-items:center;gap:9px;padding:7px 10px;
-  background:var(--surface2);border:1px solid var(--border);border-radius:7px;
-  transition:border-color .15s;cursor:pointer}
+.sku-home-item{display:flex;flex-direction:column;gap:5px;padding:9px 11px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:8px;
+  transition:border-color .15s}
 .sku-home-item:hover{border-color:#3a3a50}
+.sku-home-item-top{display:flex;align-items:center;gap:8px;width:100%;cursor:pointer}
+.sku-home-item-top:hover .sku-home-content{color:var(--accent)}
+/* 위젯 내 단계 진행 바 */
+.sku-home-steps{display:flex;align-items:center;gap:3px;padding:2px 0 0 16px}
+.sku-home-step{display:flex;align-items:center;gap:3px}
+.sku-home-step-btn{padding:3px 9px;border-radius:5px;border:1px solid var(--border);
+  background:var(--surface);font-family:'Noto Sans KR',sans-serif;font-size:10px;
+  font-weight:600;cursor:pointer;transition:all .18s;color:var(--text-muted);
+  white-space:nowrap;line-height:1.4}
+.sku-home-step-btn.current{cursor:default;font-weight:700}
+.sku-home-step-btn.current.s-pending  {border-color:#f472b6;color:#f472b6;background:rgba(244,114,182,.12)}
+.sku-home-step-btn.current.s-inprogress{border-color:var(--progress);color:var(--progress);background:var(--progress-bg)}
+.sku-home-step-btn.current.s-payment  {border-color:#a78bfa;color:#a78bfa;background:rgba(167,139,250,.15)}
+.sku-home-step-btn.current.s-done     {border-color:var(--complete);color:var(--complete);background:var(--complete-bg)}
+.sku-home-step-arrow{font-size:10px;color:var(--text-muted);flex-shrink:0}
+.sku-home-next-btn{padding:3px 9px;border-radius:5px;border:1px solid rgba(129,140,248,.35);
+  background:rgba(129,140,248,.07);font-family:'Noto Sans KR',sans-serif;
+  font-size:10px;font-weight:700;cursor:pointer;transition:all .18s;color:var(--accent);
+  white-space:nowrap;line-height:1.4}
+.sku-home-next-btn:hover{background:rgba(129,140,248,.16);border-color:var(--accent)}
+.sku-home-done-btn{padding:3px 9px;border-radius:5px;border:1px solid rgba(107,107,128,.3);
+  background:transparent;font-family:'Noto Sans KR',sans-serif;
+  font-size:10px;font-weight:600;cursor:pointer;color:var(--text-muted);
+  transition:all .18s;white-space:nowrap;line-height:1.4}
+.sku-home-done-btn:hover{border-color:var(--progress);color:var(--progress)}
 .sku-home-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--progress);
   box-shadow:0 0 5px var(--progress);animation:blink 2s infinite}
 .sku-home-dot.done{background:var(--complete);box-shadow:0 0 5px var(--complete);animation:none}
@@ -1123,6 +1148,33 @@ function setDate(model, date) {
 // ══════════════════════════════════════════
 //  SKU 홈 위젯 렌더
 // ══════════════════════════════════════════
+// 홈 위젯에서 직접 다음 단계로 진행
+function homeStepAdvance(id) {
+  const sku = SKUS.find(s => s.id === id);
+  if (!sku) return;
+  const step     = getStep(sku.skuStatus || 'pending');
+  const nextStep = step.next;
+  if (!nextStep) return;
+  sku.skuStatus  = nextStep;
+  if (nextStep === 'done') sku.resolvedAt = new Date().toISOString();
+  LS.set('kc_skus_v1', SKUS);
+  renderSKUHome();
+  renderSKUList();
+  const label = getStep(nextStep).label;
+  toast(`${label}(으)로 변경되었습니다`);
+}
+
+function homeStepBack(id) {
+  const sku = SKUS.find(s => s.id === id);
+  if (!sku) return;
+  sku.skuStatus  = 'pending';
+  sku.resolvedAt = null;
+  LS.set('kc_skus_v1', SKUS);
+  renderSKUHome();
+  renderSKUList();
+  toast('🔔 요청 단계로 되돌렸습니다');
+}
+
 function renderSKUHome() {
   SKUS.forEach(migrateSKU);
   const activeList = SKUS.filter(s => s.skuStatus !== 'done');
@@ -1145,15 +1197,48 @@ function renderSKUHome() {
   const show     = [...active, ...done].slice(0, 6);
 
   const html = show.map(s => {
-    const step = getStep(s.skuStatus || 'pending');
-    const dotCls = s.skuStatus === 'done' ? 'done' : 'open';
-    const statusBadge = `<span class="sku-status-badge ${step.cls||''}">${step.label}</span>`;
-    return `<div class="sku-home-item" onclick="openSKUEdit(${s.id})">
-      <div class="sku-home-dot ${dotCls}"></div>
-      <span class="sku-home-content">${s.content}</span>
-      ${s.note ? `<span class="sku-home-note">${s.note}</span>` : ''}
-      <span class="sku-home-date">${s.date}</span>
-      ${statusBadge}
+    const step    = getStep(s.skuStatus || 'pending');
+    const nextStep = step.next ? getStep(step.next) : null;
+    const dotCls  = s.skuStatus === 'done' ? 'done' : 'open';
+
+    // 4단계 진행 바 (현재 단계 하이라이트 + 다음단계 버튼)
+    const stepsHtml = SKU_STEPS.map((st, i) => {
+      const isCurrent = st.key === (s.skuStatus || 'pending');
+      const isPast    = SKU_STEPS.findIndex(x => x.key === (s.skuStatus||'pending')) > i;
+      const btnCls    = isCurrent ? `sku-home-step-btn current ${st.cls}` : `sku-home-step-btn${isPast ? ' done-step' : ''}`;
+      const btnStyle  = isPast ? 'opacity:.45;cursor:default' : '';
+      const part = `<div class="sku-home-step">
+        <button class="${btnCls}" style="${btnStyle}"
+          onclick="event.stopPropagation();${isCurrent && nextStep ? `homeStepAdvance(${s.id})` : ''}"
+          ${!isCurrent ? 'disabled' : ''}
+          title="${isCurrent ? (nextStep ? nextStep.label+'으로 진행' : '최종 단계') : st.short}"
+        >${st.short}</button>
+        ${i < SKU_STEPS.length - 1 ? '<span class="sku-home-step-arrow">›</span>' : ''}
+      </div>`;
+      return part;
+    }).join('');
+
+    // 다음 단계 버튼 (현재 단계 우측)
+    const actionBtn = s.skuStatus !== 'done'
+      ? `<button class="sku-home-next-btn"
+          onclick="event.stopPropagation();homeStepAdvance(${s.id})"
+          title="${nextStep ? nextStep.label+'으로 진행' : ''}"
+        >${nextStep ? nextStep.label+' →' : '완료 →'}</button>`
+      : `<button class="sku-home-done-btn"
+          onclick="event.stopPropagation();homeStepBack(${s.id})"
+          title="요청 단계로 되돌리기">↩ 재요청</button>`;
+
+    return `<div class="sku-home-item">
+      <div class="sku-home-item-top" onclick="openSKUEdit(${s.id})">
+        <div class="sku-home-dot ${dotCls}"></div>
+        <span class="sku-home-content">${s.content}</span>
+        ${s.note ? `<span class="sku-home-note">${s.note}</span>` : ''}
+        <span class="sku-home-date">${s.date}</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding-left:16px">
+        <div style="display:flex;align-items:center;gap:0">${stepsHtml}</div>
+        ${actionBtn}
+      </div>
     </div>`;
   }).join('');
 
